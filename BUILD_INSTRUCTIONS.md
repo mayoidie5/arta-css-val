@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-1. Node.js 18.x or higher
+1. Node.js 18.x or higher...
 2. A Vercel account
 3. Firebase project with Firestore configured
 4. GitHub repository with your code
