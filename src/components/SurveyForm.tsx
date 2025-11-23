@@ -224,15 +224,32 @@ export function SurveyForm({ onBackToLanding, questions, onSubmitResponse, kiosk
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  // Update formData when questions change (e.g., new questions added)
+  // Update formData when questions change (e.g., new questions added, deleted, or updated)
   useEffect(() => {
     setFormData(prev => {
       const updated = { ...prev };
+      const currentQuestionIds = questions.map(q => q.id);
+      
+      // Add new questions that don't exist yet
       questions.forEach(q => {
         if (!(q.id in updated)) {
           updated[q.id] = '';
         }
       });
+      
+      // Remove formData entries for deleted questions
+      Object.keys(updated).forEach(key => {
+        // Keep base fields (clientType, date, sex, etc.)
+        const baseFields = ['clientType', 'date', 'sex', 'age', 'region', 'service', 'serviceOther', 'suggestions', 'email'];
+        if (!baseFields.includes(key) && !currentQuestionIds.includes(key)) {
+          delete updated[key];
+        }
+      });
+      
+      // Log changes for debugging
+      console.log('📋 Questions updated in SurveyForm. Total questions:', questions.length);
+      console.log('Question IDs:', currentQuestionIds);
+      
       return updated;
     });
   }, [questions]);
