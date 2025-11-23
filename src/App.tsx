@@ -5,6 +5,7 @@ import { AdminDashboard } from './components/AdminDashboard';
 import { KioskLandingScreen } from './components/KioskLandingScreen';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { getFirestore, collection, addDoc, query, orderBy, onSnapshot } from 'firebase/firestore';
+import { subscribeToQuestions, addQuestion, updateQuestion, deleteQuestion, reorderQuestions, questionsExist, syncAllQuestions } from './services/questionService';
 import './firebase';
 
 // Types
@@ -114,6 +115,8 @@ function AppContent() {
       order: 12
     },
   ]);
+  const [questionsLoading, setQuestionsLoading] = useState(true);
+  const [questionsError, setQuestionsError] = useState<string | null>(null);
 
   // Survey Responses State
   const [responses, setResponses] = useState<SurveyResponse[]>([]);
@@ -171,6 +174,53 @@ function AppContent() {
     });
 
     return () => unsubscribe();
+  }, []);
+
+  // Load and subscribe to questions from Firestore
+  useEffect(() => {
+    let unsubscribe: (() => void) | null = null;
+
+    const loadQuestions = async () => {
+      try {
+        setQuestionsLoading(true);
+        
+        // Check if questions exist in Firestore
+        const exists = await questionsExist();
+        
+        if (!exists) {
+          // If no questions in Firestore, sync the default questions
+          console.log('📋 Syncing default questions to Firestore...');
+          await syncAllQuestions(questions);
+        }
+        
+        // Subscribe to real-time updates
+        unsubscribe = subscribeToQuestions(
+          (loadedQuestions) => {
+            console.log('📋 Questions loaded from Firestore:', loadedQuestions.length);
+            setQuestions(loadedQuestions);
+            setQuestionsLoading(false);
+            setQuestionsError(null);
+          },
+          (error) => {
+            console.error('Error with questions subscription:', error);
+            setQuestionsError(error?.message || 'Failed to load questions');
+            setQuestionsLoading(false);
+          }
+        );
+      } catch (error) {
+        console.error('Error loading questions:', error);
+        setQuestionsError(error instanceof Error ? error.message : 'Failed to load questions');
+        setQuestionsLoading(false);
+      }
+    };
+
+    loadQuestions();
+
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
   }, []);
 
   // Users State
@@ -233,20 +283,52 @@ function AppContent() {
   }, [user, loading]);
 
   // Handlers for Admin Dashboard
-  const handleAddQuestion = (question: SurveyQuestion) => {
-    setQuestions([...questions, question]);
+  const handleAddQuestion = async (question: SurveyQuestion) => {
+    try {
+      await addQuestion(question);
+      // The real-time listener will update state automatically
+    } catch (error) {
+      console.error('Failed to add question:', error);
+      // Fallback: update local state
+      setQuestions([...questions, question]);
+    }
   };
 
-  const handleUpdateQuestion = (id: string, updates: Partial<SurveyQuestion>) => {
-    setQuestions(questions.map(q => q.id === id ? { ...q, ...updates } : q));
+  const handleUpdateQuestion = async (id: string, updates: Partial<SurveyQuestion>) => {
+    try {
+      await updateQuestion(id, updates);
+      // The real-time listener will update state automatically
+    } catch (error) {
+      console.error('Failed to update question:', error);
+      // Fallback: update local state
+      setQuestions(questions.map(q => q.id === id ? { ...q, ...updates } : q));
+    }
   };
 
-  const handleDeleteQuestion = (id: string) => {
-    setQuestions(questions.filter(q => q.id !== id));
+  const handleDeleteQuestion = async (id: string) => {
+    try {
+      await deleteQuestion(id);
+      // The real-time listener will update state automatically
+    } catch (error) {
+      console.error('Failed to delete question:', error);
+      // Fallback: update local state
+      setQuestions(questions.filter(q => q.id !== id));
+    }
+  };
+
+  const handleReorderQuestions = async (reorderedQuestions: SurveyQuestion[]) => {
+    try {
+      await reorderQuestions(reorderedQuestions);
+      // The real-time listener will update state automatically
+    } catch (error) {
+      console.error('Failed to reorder questions:', error);
+      // Fallback: update local state
+      setQuestions(reorderedQuestions);
+    }
   };
 
   const handleAddUser = (user: Omit<User, 'id'>) => {
-    const newUser = { ...user, id: Math.max(...users.map(u => u.id)) + 1 };
+    const newUser = { ...user, id: Math.max(...users.map(u => u.id), 0) + 1 };
     setUsers([...users, newUser]);
   };
 
@@ -256,10 +338,6 @@ function AppContent() {
 
   const handleDeleteUser = (id: number) => {
     setUsers(users.filter(u => u.id !== id));
-  };
-
-  const handleReorderQuestions = (reorderedQuestions: SurveyQuestion[]) => {
-    setQuestions(reorderedQuestions);
   };
 
   const handleSubmitResponse = async (response: Omit<SurveyResponse, 'id' | 'timestamp'>) => {
@@ -278,7 +356,7 @@ function AppContent() {
 
   return (
     <div className="min-h-screen">
-      {loading || responsesLoading ? (
+      {loading || responsesLoading || questionsLoading ? (
         <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-primary/5 to-secondary/5">
           <div className="text-center space-y-4">
             <div className="inline-block">
