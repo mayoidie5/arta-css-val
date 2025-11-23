@@ -1,13 +1,24 @@
 import { motion } from 'framer-motion';
-import { Award, ClipboardCheck, HandHelping, MonitorSmartphone, Hand, Sparkles, CheckCircle2 } from 'lucide-react';
+import { Award, ClipboardCheck, HandHelping, MonitorSmartphone, Hand, Sparkles, CheckCircle2, QrCode } from 'lucide-react';
+import { useState } from 'react';
 import valenzuelaLogo from 'figma:asset/3da91e378b5746d28e242948a192281543f29d21.png';
 import { ImageWithFallback } from './figma/ImageWithFallback';
+import { Button } from './ui/button';
+import { QRCodeScanner } from './QRCodeScanner';
 
 interface KioskLandingScreenProps {
   onStartSurvey: () => void;
 }
 
 export function KioskLandingScreen({ onStartSurvey }: KioskLandingScreenProps) {
+  const [showQRScanner, setShowQRScanner] = useState(false);
+
+  const handleQRScanSuccess = (qrData: string) => {
+    console.log('QR Code scanned:', qrData);
+    // Close scanner and start survey
+    setShowQRScanner(false);
+    onStartSurvey();
+  };
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0D3B66] via-[#1a5080] to-[#0D3B66] flex items-center justify-center p-8">
       <motion.div 
@@ -159,7 +170,7 @@ export function KioskLandingScreen({ onStartSurvey }: KioskLandingScreenProps) {
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 1, duration: 0.5 }}
-            className="text-center"
+            className="text-center space-y-4"
           >
             <motion.button
               onClick={onStartSurvey}
@@ -193,6 +204,15 @@ export function KioskLandingScreen({ onStartSurvey }: KioskLandingScreenProps) {
               </div>
             </motion.button>
 
+            {/* QR Scanner Button */}
+            <Button
+              onClick={() => setShowQRScanner(true)}
+              className="group relative inline-flex items-center gap-3 px-8 py-6 bg-secondary hover:bg-secondary/90 text-secondary-foreground rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
+            >
+              <QrCode className="w-6 h-6" />
+              <span className="font-semibold">Scan QR Code</span>
+            </Button>
+
             <motion.div
               animate={{ 
                 y: [0, -10, 0]
@@ -220,6 +240,14 @@ export function KioskLandingScreen({ onStartSurvey }: KioskLandingScreenProps) {
             All responses are confidential and used solely for service improvement
           </p>
         </div>
+
+        {/* QR Code Scanner Modal */}
+        {showQRScanner && (
+          <QRCodeScanner
+            onScanSuccess={handleQRScanSuccess}
+            onClose={() => setShowQRScanner(false)}
+          />
+        )}
       </motion.div>
     </div>
   );
