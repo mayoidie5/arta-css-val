@@ -61,7 +61,6 @@
       },
       "scripts": {
             "dev": "vite",
-            "build": "vite build",
-            "vercel-build": "node -e \"require('vite').build({root: process.cwd(), logLevel: 'warn'})\""
+            "build": "node ./build.js"
       }
 }
