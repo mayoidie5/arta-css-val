@@ -3,12 +3,12 @@
   "outputDirectory": "build",
   "installCommand": "npm install",
   "env":{
-    "VITE_FIREBASE_API_KEY": "@AIzaSyAgZV5W_AauAn8X7r7kOjtIcjUSj0g_ISw",
-    "VITE_FIREBASE_AUTH_DOMAIN": "@arta-a6d0f.firebaseapp.com",
-    "VITE_FIREBASE_PROJECT_ID": "@arta-a6d0f",
-    "VITE_FIREBASE_STORAGE_BUCKET": "@arta-a6d0f.firebasestorage.app",
+    "VITE_FIREBASE_API_KEY": "AIzaSyAgZV5W_AauAn8X7r7kOjtIcjUSj0g_ISw",
+    "VITE_FIREBASE_AUTH_DOMAIN": "arta-a6d0f.firebaseapp.com",
+    "VITE_FIREBASE_PROJECT_ID": "arta-a6d0f",
+    "VITE_FIREBASE_STORAGE_BUCKET": "arta-a6d0f.firebasestorage.app",
     "VITE_FIREBASE_MESSAGING_SENDER_ID": "714515987128",
-    "VITE_FIREBASE_APP_ID": "@1:714515987128:web:264b4a9f4c807a834d124d",
-    "VITE_FIREBASE_MEASUREMENT_ID": "@G-RXZRSWQ14B"
+    "VITE_FIREBASE_APP_ID": "1:714515987128:web:264b4a9f4c807a834d124d",
+    "VITE_FIREBASE_MEASUREMENT_ID": "G-RXZRSWQ14B"
   }
 }
