@@ -1,7 +1,7 @@
 {
   "buildCommand": "npm run build",
   "outputDirectory": "build",
-  "installCommand": "npm install",
+  "installCommand": "npm install --legacy-peer-deps",
   "env":{
     "VITE_FIREBASE_API_KEY": "AIzaSyAgZV5W_AauAn8X7r7kOjtIcjUSj0g_ISw",
     "VITE_FIREBASE_AUTH_DOMAIN": "arta-a6d0f.firebaseapp.com",
