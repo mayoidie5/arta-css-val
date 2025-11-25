@@ -256,7 +256,7 @@ function AppContent() {
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
       // Ctrl+Shift+K to disable kiosk mode
-      if (e.ctrlKey && e.shiftKey && e.key === 'K') {
+      if (e.ctrlKey && e.shiftKey && (e.key === 'K' || e.key === 'k')) {
         localStorage.removeItem('kioskMode');
         setKioskMode(false);
         window.dispatchEvent(new Event('kioskModeChange'));
@@ -265,7 +265,7 @@ function AppContent() {
       }
       
       // Ctrl+Shift+A to access admin (even in kiosk mode)
-      if (e.ctrlKey && e.shiftKey && e.key === 'A') {
+      if (e.ctrlKey && e.shiftKey && (e.key === 'A' || e.key === 'a')) {
         console.log('🔐 Admin access via keyboard shortcut');
         setView('admin');
       }
@@ -284,46 +284,71 @@ function AppContent() {
 
   // Handlers for Admin Dashboard
   const handleAddQuestion = async (question: SurveyQuestion) => {
+    const originalQuestions = questions;
     try {
-      await addQuestion(question);
-      // The real-time listener will update state automatically
+      // Optimistic update: update local state immediately for instant feedback
+      const newQuestion = { ...question, order: Math.max(...questions.map(q => q.order), 0) + 1 };
+      setQuestions([...questions, newQuestion]);
+      
+      // Then save to Firebase (async, no need to block UI)
+      await addQuestion(newQuestion);
+      console.log('✅ Question added to Firebase');
     } catch (error) {
       console.error('Failed to add question:', error);
-      // Fallback: update local state
-      setQuestions([...questions, question]);
+      // Revert optimistic update on failure
+      setQuestions(originalQuestions);
+      throw error;
     }
   };
 
   const handleUpdateQuestion = async (id: string, updates: Partial<SurveyQuestion>) => {
+    const originalQuestions = questions;
     try {
+      // Optimistic update: update local state immediately for instant feedback
+      setQuestions(questions.map(q => q.id === id ? { ...q, ...updates } : q));
+      
+      // Then save to Firebase (async, no need to block UI)
       await updateQuestion(id, updates);
-      // The real-time listener will update state automatically
+      console.log('✅ Question updated in Firebase');
     } catch (error) {
       console.error('Failed to update question:', error);
-      // Fallback: update local state
-      setQuestions(questions.map(q => q.id === id ? { ...q, ...updates } : q));
+      // Revert optimistic update on failure
+      setQuestions(originalQuestions);
+      throw error;
     }
   };
 
   const handleDeleteQuestion = async (id: string) => {
+    const originalQuestions = questions;
     try {
+      // Optimistic update: remove from local state immediately for instant feedback
+      setQuestions(questions.filter(q => q.id !== id));
+      
+      // Then delete from Firebase (async, no need to block UI)
       await deleteQuestion(id);
-      // The real-time listener will update state automatically
+      console.log('✅ Question deleted from Firebase');
     } catch (error) {
       console.error('Failed to delete question:', error);
-      // Fallback: update local state
-      setQuestions(questions.filter(q => q.id !== id));
+      // Revert optimistic update on failure
+      setQuestions(originalQuestions);
+      throw error;
     }
   };
 
   const handleReorderQuestions = async (reorderedQuestions: SurveyQuestion[]) => {
+    const originalQuestions = questions;
     try {
+      // Optimistic update: update local state immediately for instant feedback
+      setQuestions(reorderedQuestions);
+      
+      // Then save to Firebase (async, no need to block UI)
       await reorderQuestions(reorderedQuestions);
-      // The real-time listener will update state automatically
+      console.log('✅ Questions reordered in Firebase');
     } catch (error) {
       console.error('Failed to reorder questions:', error);
-      // Fallback: update local state
-      setQuestions(reorderedQuestions);
+      // Revert optimistic update on failure
+      setQuestions(originalQuestions);
+      throw error;
     }
   };
 

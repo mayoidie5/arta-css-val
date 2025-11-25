@@ -124,26 +124,38 @@ export const updateQuestion = async (questionId: string, updates: Partial<Survey
     const questionsRef = collection(db, QUESTIONS_COLLECTION);
     
     // Find the document with matching question ID
-    const snapshot = await getDocs(query(questionsRef));
+    const snapshot = await getDocs(questionsRef);
     let docId: string | null = null;
+    let existingData: any = null;
     
     snapshot.forEach((doc) => {
       if (doc.data().id === questionId) {
         docId = doc.id;
+        existingData = doc.data();
       }
     });
     
-    if (!docId) {
+    if (!docId || !existingData) {
       throw new Error(`Question with ID ${questionId} not found`);
     }
     
-    const docRef = doc(db, QUESTIONS_COLLECTION, docId);
-    await updateDoc(docRef, {
-      ...updates,
+    // Prepare the complete updated document
+    const updatedData = {
+      id: existingData.id || updates.id || questionId,
+      text: updates.text !== undefined ? updates.text : existingData.text,
+      type: updates.type !== undefined ? updates.type : existingData.type,
+      required: updates.required !== undefined ? updates.required : existingData.required,
+      category: updates.category !== undefined ? updates.category : existingData.category,
+      choices: updates.choices !== undefined ? updates.choices : (existingData.choices || []),
+      order: updates.order !== undefined ? updates.order : existingData.order,
+      createdAt: existingData.createdAt || new Date(),
       updatedAt: new Date(),
-    });
+    };
     
-    console.log('✅ Question updated:', questionId);
+    const docRef = doc(db, QUESTIONS_COLLECTION, docId);
+    await updateDoc(docRef, updatedData);
+    
+    console.log('✅ Question updated:', questionId, updatedData);
   } catch (error) {
     console.error('Error updating question:', error);
     throw error;

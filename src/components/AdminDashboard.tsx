@@ -267,14 +267,20 @@ export function AdminDashboard({
     setSaveOrderConfirmOpen(true);
   };
 
-  const confirmSaveOrder = () => {
+  const confirmSaveOrder = async () => {
     // Call the parent handler to persist the new order
     if (onReorderQuestions) {
-      onReorderQuestions(sortedQuestions);
-      setHasUnsavedChanges(false);
-      setSaveOrderConfirmOpen(false);
-      setActionSuccessMessage('Question order saved successfully!');
-      setActionSuccessOpen(true);
+      try {
+        await onReorderQuestions(sortedQuestions);
+        setHasUnsavedChanges(false);
+        setSaveOrderConfirmOpen(false);
+        setActionSuccessMessage('Question order saved successfully!');
+        setActionSuccessOpen(true);
+      } catch (error) {
+        console.error('Failed to save question order:', error);
+        setActionErrorMessage(`Failed to save question order: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        setActionErrorOpen(true);
+      }
     }
   };
 
@@ -474,7 +480,7 @@ export function AdminDashboard({
     }
   };
 
-  const handleAddQuestion = (e: React.FormEvent) => {
+  const handleAddQuestion = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Check if question ID already exists
@@ -492,26 +498,40 @@ export function AdminDashboard({
       return;
     }
     
-    onAddQuestion(newQuestionForm);
-    setNewQuestionForm({ id: '', text: '', type: 'Likert', required: true, category: 'SQD', choices: [''] });
-    setAddQuestionOpen(false);
-    setActionSuccessMessage('Question added successfully!');
-    setActionSuccessOpen(true);
+    try {
+      await onAddQuestion(newQuestionForm);
+      setNewQuestionForm({ id: '', text: '', type: 'Likert', required: true, category: 'SQD', choices: [''] });
+      setAddQuestionOpen(false);
+      setActionSuccessMessage('Question added successfully!');
+      setActionSuccessOpen(true);
+    } catch (error) {
+      console.error('Failed to add question:', error);
+      setActionErrorMessage(`Failed to add question: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      setActionErrorOpen(true);
+    }
   };
 
-  const handleEditQuestion = (e: React.FormEvent) => {
+  const handleEditQuestion = async (e: React.FormEvent) => {
     e.preventDefault();
     if (selectedQuestion) {
-      const form = e.target as HTMLFormElement;
-      const formData = new FormData(form);
-      onUpdateQuestion(selectedQuestion.id, {
-        text: formData.get('text') as string,
-        required: formData.get('required') === 'true',
-      });
-      setEditQuestionOpen(false);
-      setSelectedQuestion(null);
-      setActionSuccessMessage('Question updated successfully!');
-      setActionSuccessOpen(true);
+      try {
+        const form = e.target as HTMLFormElement;
+        const formData = new FormData(form);
+        // Send the complete updated question object
+        await onUpdateQuestion(selectedQuestion.id, {
+          ...selectedQuestion,
+          text: formData.get('text') as string,
+          required: formData.get('required') === 'true',
+        });
+        setEditQuestionOpen(false);
+        setSelectedQuestion(null);
+        setActionSuccessMessage('Question updated successfully!');
+        setActionSuccessOpen(true);
+      } catch (error) {
+        console.error('Failed to update question:', error);
+        setActionErrorMessage(`Failed to update question: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        setActionErrorOpen(true);
+      }
     }
   };
 
@@ -522,13 +542,19 @@ export function AdminDashboard({
     }
   };
 
-  const confirmDeleteQuestion = () => {
+  const confirmDeleteQuestion = async () => {
     if (selectedQuestion) {
-      onDeleteQuestion(selectedQuestion.id);
-      setDeleteQuestionConfirmOpen(false);
-      setSelectedQuestion(null);
-      setActionSuccessMessage('Question deleted successfully!');
-      setActionSuccessOpen(true);
+      try {
+        await onDeleteQuestion(selectedQuestion.id);
+        setDeleteQuestionConfirmOpen(false);
+        setSelectedQuestion(null);
+        setActionSuccessMessage('Question deleted successfully!');
+        setActionSuccessOpen(true);
+      } catch (error) {
+        console.error('Failed to delete question:', error);
+        setActionErrorMessage(`Failed to delete question: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        setActionErrorOpen(true);
+      }
     }
   };
 
