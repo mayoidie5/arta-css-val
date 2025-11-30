@@ -346,10 +346,334 @@ export function AdminDashboard({
   };
 
   const confirmExport = () => {
-    console.log(`Exporting ${exportType}...`);
-    setExportConfirmOpen(false);
-    setActionSuccessMessage(`${exportType} export started! Your download will begin shortly.`);
-    setActionSuccessOpen(true);
+    try {
+      if (exportType === 'CSV Export' || exportType === 'CSV') {
+        exportToCSV();
+      } else if (exportType === 'PDF Report') {
+        exportToPDF();
+      } else if (exportType === 'ARTA Compliance Report') {
+        exportARTAReport();
+      } else if (exportType === 'QR Code') {
+        downloadQRCode();
+      }
+      setExportConfirmOpen(false);
+      setActionSuccessMessage(`${exportType} export started! Your download will begin shortly.`);
+      setActionSuccessOpen(true);
+    } catch (error) {
+      console.error('Export error:', error);
+      setActionErrorMessage('Failed to export. Please try again.');
+      setActionErrorOpen(true);
+    }
+  };
+
+  const exportToCSV = () => {
+    if (responses.length === 0) {
+      setActionErrorMessage('No data to export');
+      setActionErrorOpen(true);
+      return;
+    }
+
+    // Prepare CSV header
+    const headers = ['Reference ID', 'Date', 'Client Type', 'Sex', 'Age', 'Region', 'Service', 'CC1', 'CC2', 'CC3', 'SQD0', 'SQD1', 'SQD2', 'SQD3', 'SQD4', 'SQD5', 'SQD6', 'SQD7', 'SQD8', 'SQD Average', 'Suggestions', 'Email'];
+    
+    // Prepare CSV rows
+    const rows = responses.map(response => [
+      response.refId,
+      response.date,
+      response.clientType,
+      response.sex,
+      response.age,
+      response.region,
+      response.service,
+      response.cc1,
+      response.cc2,
+      response.cc3,
+      response.sqd0,
+      response.sqd1,
+      response.sqd2,
+      response.sqd3,
+      response.sqd4,
+      response.sqd5,
+      response.sqd6,
+      response.sqd7,
+      response.sqd8,
+      response.sqdAvg.toFixed(2),
+      `"${response.suggestions.replace(/"/g, '""')}"`,
+      response.email
+    ]);
+
+    // Create CSV content
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => typeof cell === 'string' && cell.includes(',') ? `"${cell}"` : cell).join(','))
+    ].join('\n');
+
+    // Create and download file
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `survey_responses_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+  };
+
+  const exportToPDF = () => {
+    if (responses.length === 0) {
+      setActionErrorMessage('No data to export');
+      setActionErrorOpen(true);
+      return;
+    }
+
+    // We'll use a simple approach with HTML to PDF conversion
+    const htmlContent = generatePDFContent();
+    const printWindow = window.open('', '', 'width=1200,height=800');
+    if (printWindow) {
+      printWindow.document.write(htmlContent);
+      printWindow.document.close();
+      printWindow.focus();
+      // Delay to ensure content is loaded
+      setTimeout(() => {
+        printWindow.print();
+        printWindow.close();
+      }, 250);
+    }
+  };
+
+  const generatePDFContent = () => {
+    const totalResponses = responses.length;
+    const avgSQD = responses.length > 0 
+      ? (responses.reduce((sum, r) => sum + r.sqdAvg, 0) / responses.length).toFixed(2)
+      : 0;
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Survey Report</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 20px; color: #333; }
+          h1 { color: #0D3B66; border-bottom: 3px solid #3FA7D6; padding-bottom: 10px; }
+          h2 { color: #0D3B66; margin-top: 30px; }
+          table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+          th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+          th { background-color: #0D3B66; color: white; }
+          tr:nth-child(even) { background-color: #f5f5f5; }
+          .summary { background-color: #F5F9FC; padding: 15px; border-radius: 5px; margin: 20px 0; }
+          .metric { display: inline-block; margin-right: 30px; }
+          .metric-label { color: #666; font-size: 12px; }
+          .metric-value { color: #0D3B66; font-size: 24px; font-weight: bold; }
+        </style>
+      </head>
+      <body>
+        <h1>Survey Report - ${new Date().toLocaleDateString()}</h1>
+        
+        <div class="summary">
+          <h2>Summary Statistics</h2>
+          <div class="metric">
+            <div class="metric-label">Total Responses</div>
+            <div class="metric-value">${totalResponses}</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Avg SQD Score</div>
+            <div class="metric-value">${avgSQD}/5.00</div>
+          </div>
+        </div>
+
+        <h2>Top Services</h2>
+        <table>
+          <tr>
+            <th>Service</th>
+            <th>Count</th>
+            <th>Percentage</th>
+          </tr>
+          ${generateServiceStats()}
+        </table>
+
+        <h2>Client Demographics</h2>
+        <table>
+          <tr>
+            <th>Category</th>
+            <th>Count</th>
+            <th>Percentage</th>
+          </tr>
+          ${generateDemographicsStats()}
+        </table>
+
+        <h2>Detailed Responses</h2>
+        <table>
+          <tr>
+            <th>Ref ID</th>
+            <th>Date</th>
+            <th>Service</th>
+            <th>SQD Avg</th>
+            <th>Client Type</th>
+          </tr>
+          ${responses.slice(0, 50).map(r => `
+            <tr>
+              <td>${r.refId}</td>
+              <td>${r.date}</td>
+              <td>${r.service}</td>
+              <td>${r.sqdAvg.toFixed(2)}</td>
+              <td>${r.clientType}</td>
+            </tr>
+          `).join('')}
+        </table>
+
+        <p style="margin-top: 40px; color: #666; font-size: 12px;">
+          Report generated on ${new Date().toLocaleString()}<br>
+          Confidential - Please handle in accordance with data privacy regulations
+        </p>
+      </body>
+      </html>
+    `;
+    return html;
+  };
+
+  const generateServiceStats = () => {
+    const serviceMap = new Map<string, number>();
+    responses.forEach(r => {
+      serviceMap.set(r.service, (serviceMap.get(r.service) || 0) + 1);
+    });
+    
+    return Array.from(serviceMap.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10)
+      .map(([service, count]) => {
+        const percentage = ((count / responses.length) * 100).toFixed(1);
+        return `<tr><td>${service}</td><td>${count}</td><td>${percentage}%</td></tr>`;
+      })
+      .join('');
+  };
+
+  const generateDemographicsStats = () => {
+    const clientTypeMap = new Map<string, number>();
+    responses.forEach(r => {
+      clientTypeMap.set(r.clientType, (clientTypeMap.get(r.clientType) || 0) + 1);
+    });
+    
+    return Array.from(clientTypeMap.entries())
+      .map(([type, count]) => {
+        const percentage = ((count / responses.length) * 100).toFixed(1);
+        return `<tr><td>${type}</td><td>${count}</td><td>${percentage}%</td></tr>`;
+      })
+      .join('');
+  };
+
+  const exportARTAReport = () => {
+    // ARTA compliance report - similar structure to PDF but with specific ARTA format
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>ARTA Compliance Report</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 20px; color: #333; }
+          .header { text-align: center; border-bottom: 2px solid #0D3B66; padding-bottom: 15px; margin-bottom: 20px; }
+          .header h1 { color: #0D3B66; margin: 0; }
+          .header p { color: #666; margin: 5px 0; }
+          h2 { color: #0D3B66; margin-top: 30px; }
+          table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+          th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+          th { background-color: #0D3B66; color: white; }
+          .signature-box { margin-top: 40px; padding-top: 20px; border-top: 1px solid #ddd; }
+          .signature-line { width: 200px; border-bottom: 1px solid #000; margin-top: 40px; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>ARTA COMPLIANCE REPORT</h1>
+          <p>Anti-Red Tape Authority - Service Quality Dimensions (SQD) Assessment</p>
+          <p>Report Date: ${new Date().toLocaleDateString()}</p>
+        </div>
+
+        <h2>1. EXECUTIVE SUMMARY</h2>
+        <p>Total Responses: <strong>${responses.length}</strong></p>
+        <p>Average SQD Score: <strong>${(responses.reduce((sum, r) => sum + r.sqdAvg, 0) / responses.length).toFixed(2)}/5.00</strong></p>
+        <p>Reporting Period: ${new Date().toLocaleDateString()}</p>
+
+        <h2>2. SERVICE QUALITY DIMENSIONS ANALYSIS</h2>
+        <table>
+          <tr>
+            <th>Dimension</th>
+            <th>Average Score</th>
+            <th>Total Responses</th>
+          </tr>
+          ${generateSQDAnalysis()}
+        </table>
+
+        <h2>3. COMPLIANCE ATTESTATION</h2>
+        <p>This report certifies that the survey responses have been collected in accordance with ARTA guidelines and data privacy requirements. All data has been securely stored and reported in compliance with the Data Privacy Act of 2012.</p>
+
+        <div class="signature-box">
+          <p><strong>Submitted by:</strong> ${user?.name || 'Survey Administrator'}</p>
+          <p><strong>Date:</strong> ${new Date().toLocaleDateString()}</p>
+          <div class="signature-line"></div>
+          <p style="margin-top: 5px; font-size: 12px;">Authorized Signature</p>
+        </div>
+
+        <p style="margin-top: 40px; color: #666; font-size: 10px; text-align: center;">
+          Confidential Document - ARTA Compliance Report<br>
+          Please handle in accordance with data privacy regulations
+        </p>
+      </body>
+      </html>
+    `;
+    
+    const printWindow = window.open('', '', 'width=1200,height=800');
+    if (printWindow) {
+      printWindow.document.write(htmlContent);
+      printWindow.document.close();
+      printWindow.focus();
+      setTimeout(() => {
+        printWindow.print();
+        printWindow.close();
+      }, 250);
+    }
+  };
+
+  const generateSQDAnalysis = () => {
+    const sqdFields = ['sqd0', 'sqd1', 'sqd2', 'sqd3', 'sqd4', 'sqd5', 'sqd6', 'sqd7', 'sqd8'];
+    const labels = [
+      'Satisfaction with Service',
+      'Reasonable Time Spent',
+      'Followed Requirements',
+      'Easy and Simple Steps',
+      'Easy Information Access',
+      'Reasonable Fees',
+      'Fairness (Walang Palakasan)',
+      'Courtesy of Staff',
+      'Got What Was Needed'
+    ];
+
+    const scoreMap: { [key: number]: number } = { 1: 1, 2: 2, 3: 3, 4: 4, 5: 5 };
+    
+    return labels.map((label, idx) => {
+      const field = sqdFields[idx] as keyof SurveyResponse;
+      const scores = responses
+        .map(r => {
+          const val = r[field];
+          return typeof val === 'string' ? parseInt(val) : val;
+        })
+        .filter(s => !isNaN(s) && s > 0);
+      
+      const avgScore = scores.length > 0 
+        ? (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(2)
+        : 'N/A';
+      
+      return `<tr><td>${label}</td><td>${avgScore}</td><td>${scores.length}</td></tr>`;
+    }).join('');
+  };
+
+  const downloadQRCode = () => {
+    const qrCanvas = document.querySelector('canvas[aria-label="qr-code"]') as HTMLCanvasElement;
+    if (qrCanvas) {
+      const link = document.createElement('a');
+      link.href = qrCanvas.toDataURL('image/png');
+      link.download = `qr_code_${new Date().getTime()}.png`;
+      link.click();
+    } else {
+      setActionErrorMessage('QR Code not found');
+      setActionErrorOpen(true);
+    }
   };
 
   const handleChangePassword = (e: React.FormEvent) => {
