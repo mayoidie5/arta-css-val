@@ -165,8 +165,107 @@ export function SurveyForm({ onBackToLanding, questions, onSubmitResponse, kiosk
     return sqdValues.reduce((a, b) => a + b, 0) / sqdValues.length;
   };
 
+  const findFirstUnansweredField = () => {
+    const requiredFields = getRequiredFields();
+    
+    for (const field of requiredFields) {
+      const value = formData[field as keyof typeof formData];
+      // Check for empty string, undefined, null, or whitespace-only strings
+      // For radio buttons and select dropdowns, they will have specific values or empty strings
+      if (!value || (typeof value === 'string' && value.trim() === '')) {
+        return field;
+      }
+    }
+    
+    return null;
+  };
+
+  const scrollToField = (fieldId: string) => {
+    // Map field IDs to section IDs for main fields
+    const sectionMap: Record<string, string> = {
+      'clientType': 'client-info',
+      'date': 'client-info',
+      'sex': 'client-info',
+      'age': 'client-info',
+      'region': 'client-info',
+      'service': 'client-info',
+      'serviceOther': 'client-info',
+      'suggestions': 'feedback-section',
+    };
+
+    // Check if it's a CC question (cc1, cc2, cc3)
+    if (fieldId.startsWith('cc')) {
+      const element = document.getElementById('cc-section');
+      if (element) {
+        const headerOffset = 100;
+        const elementPosition = element.getBoundingClientRect().top;
+        const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+        window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
+        // Highlight the first unanswered CC field
+        setTimeout(() => {
+          const fieldElement = document.getElementById(fieldId);
+          if (fieldElement) {
+            fieldElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            fieldElement.focus();
+          }
+        }, 300);
+      }
+      return;
+    }
+
+    // Check if it's an SQD question (sqd0-sqd8)
+    if (fieldId.startsWith('sqd')) {
+      const element = document.getElementById('sqd-section');
+      if (element) {
+        const headerOffset = 100;
+        const elementPosition = element.getBoundingClientRect().top;
+        const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+        window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
+        // Highlight the first unanswered SQD field
+        setTimeout(() => {
+          const fieldElement = document.getElementById(fieldId);
+          if (fieldElement) {
+            fieldElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            fieldElement.focus();
+          }
+        }, 300);
+      }
+      return;
+    }
+
+    // Handle other fields
+    const sectionId = sectionMap[fieldId];
+    if (sectionId) {
+      const element = document.getElementById(sectionId);
+      if (element) {
+        const headerOffset = 100;
+        const elementPosition = element.getBoundingClientRect().top;
+        const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+        window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
+        
+        // Find and focus the specific field input
+        setTimeout(() => {
+          const fieldElement = document.getElementById(fieldId);
+          if (fieldElement) {
+            fieldElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            fieldElement.focus();
+          }
+        }, 300);
+      }
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Check for unanswered required fields
+    const unansweredField = findFirstUnansweredField();
+    if (unansweredField) {
+      // Scroll to the unanswered field
+      scrollToField(unansweredField);
+      return;
+    }
+
     const refId = generateReferenceId();
     setReferenceId(refId);
     
@@ -621,52 +720,56 @@ export function SurveyForm({ onBackToLanding, questions, onSubmitResponse, kiosk
               <Label htmlFor="clientType" className="text-primary">
                 Client Type <span className="text-destructive">*</span>
               </Label>
-              <RadioGroup value={formData.clientType} onValueChange={(value) => updateField('clientType', value)}>
-                <Label 
-                  htmlFor="citizen" 
-                  className={`flex items-center space-x-3 p-4 rounded-lg border-2 transition-all cursor-pointer ${
-                    formData.clientType === 'citizen' 
-                      ? 'bg-secondary/10 border-secondary shadow-md' 
-                      : 'bg-muted/50 border-border hover:border-secondary'
-                  }`}
-                >
-                  <RadioGroupItem value="citizen" id="citizen" />
-                  <span className="flex-1">Citizen</span>
-                </Label>
-                <Label 
-                  htmlFor="business" 
-                  className={`flex items-center space-x-3 p-4 rounded-lg border-2 transition-all cursor-pointer ${
-                    formData.clientType === 'business' 
-                      ? 'bg-secondary/10 border-secondary shadow-md' 
-                      : 'bg-muted/50 border-border hover:border-secondary'
-                  }`}
-                >
-                  <RadioGroupItem value="business" id="business" />
-                  <span className="flex-1">Business</span>
-                </Label>
-                <Label 
-                  htmlFor="government" 
-                  className={`flex items-center space-x-3 p-4 rounded-lg border-2 transition-all cursor-pointer ${
-                    formData.clientType === 'government' 
-                      ? 'bg-secondary/10 border-secondary shadow-md' 
-                      : 'bg-muted/50 border-border hover:border-secondary'
-                  }`}
-                >
-                  <RadioGroupItem value="government" id="government" />
-                  <span className="flex-1">Government (Employee or Another Agency)</span>
-                </Label>
-              </RadioGroup>
+              <div id="clientType">
+                <RadioGroup value={formData.clientType} onValueChange={(value) => updateField('clientType', value)}>
+                  <Label 
+                    htmlFor="citizen" 
+                    className={`flex items-center space-x-3 p-4 rounded-lg border-2 transition-all cursor-pointer ${
+                      formData.clientType === 'citizen' 
+                        ? 'bg-secondary/10 border-secondary shadow-md' 
+                        : 'bg-muted/50 border-border hover:border-secondary'
+                    }`}
+                  >
+                    <RadioGroupItem value="citizen" id="citizen" />
+                    <span className="flex-1">Citizen</span>
+                  </Label>
+                  <Label 
+                    htmlFor="business" 
+                    className={`flex items-center space-x-3 p-4 rounded-lg border-2 transition-all cursor-pointer ${
+                      formData.clientType === 'business' 
+                        ? 'bg-secondary/10 border-secondary shadow-md' 
+                        : 'bg-muted/50 border-border hover:border-secondary'
+                    }`}
+                  >
+                    <RadioGroupItem value="business" id="business" />
+                    <span className="flex-1">Business</span>
+                  </Label>
+                  <Label 
+                    htmlFor="government" 
+                    className={`flex items-center space-x-3 p-4 rounded-lg border-2 transition-all cursor-pointer ${
+                      formData.clientType === 'government' 
+                        ? 'bg-secondary/10 border-secondary shadow-md' 
+                        : 'bg-muted/50 border-border hover:border-secondary'
+                    }`}
+                  >
+                    <RadioGroupItem value="government" id="government" />
+                    <span className="flex-1">Government (Employee or Another Agency)</span>
+                  </Label>
+                </RadioGroup>
+              </div>
             </div>
 
-            <CustomDatePicker
-              value={formData.date}
-              onChange={(date) => updateField('date', date)}
-              label="Date"
-              required
-              maxDate={new Date()}
-            />
+            <div id="date">
+              <CustomDatePicker
+                value={formData.date}
+                onChange={(date) => updateField('date', date)}
+                label="Date"
+                required
+                maxDate={new Date()}
+              />
+            </div>
 
-            <div className="space-y-4">
+            <div className="space-y-4" id="sex">
               <Label htmlFor="sex" className="text-primary">
                 Sex <span className="text-destructive">*</span>
               </Label>
@@ -698,7 +801,7 @@ export function SurveyForm({ onBackToLanding, questions, onSubmitResponse, kiosk
               </RadioGroup>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-4" id="age">
               <Label htmlFor="age" className="text-primary">
                 Age <span className="text-destructive">*</span>
               </Label>
@@ -759,7 +862,7 @@ export function SurveyForm({ onBackToLanding, questions, onSubmitResponse, kiosk
               )}
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-4" id="region">
               <Label htmlFor="region" className="text-primary">
                 Region of Residence <span className="text-destructive">*</span>
               </Label>
@@ -789,7 +892,7 @@ export function SurveyForm({ onBackToLanding, questions, onSubmitResponse, kiosk
               </Select>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-4" id="service">
               <Label htmlFor="service" className="text-primary">
                 Service Availed <span className="text-destructive">*</span>
               </Label>
@@ -811,7 +914,7 @@ export function SurveyForm({ onBackToLanding, questions, onSubmitResponse, kiosk
 
             {/* Show input field when "Other" is selected */}
             {formData.service === 'other' && (
-              <div className="space-y-4">
+              <div className="space-y-4" id="serviceOther">
                 <Label htmlFor="serviceOther" className="text-primary">
                   Please specify the service <span className="text-destructive">*</span>
                 </Label>
@@ -843,7 +946,7 @@ export function SurveyForm({ onBackToLanding, questions, onSubmitResponse, kiosk
           <CardContent className="space-y-7 pt-6">
             {/* Dynamic CC Questions */}
             {questions.filter(q => q.category === 'CC').map((ccQuestion, index) => (
-              <div key={ccQuestion.id} className="space-y-4">
+              <div key={ccQuestion.id} id={ccQuestion.id} className="space-y-4">
                   <Label className="text-primary">
                     <strong>{ccQuestion.id.toUpperCase()}:</strong> {ccQuestion.text} {ccQuestion.required && <span className="text-destructive">*</span>}
                   </Label>
@@ -1077,7 +1180,7 @@ export function SurveyForm({ onBackToLanding, questions, onSubmitResponse, kiosk
           </CardHeader>
           <CardContent className="space-y-8 pt-6">
             {questions.filter(q => q.category === 'SQD').map((sqd) => (
-              <div key={sqd.id} className="space-y-5 pb-8 border-b border-border last:border-0 last:pb-0">
+              <div key={sqd.id} id={sqd.id} className="space-y-5 pb-8 border-b border-border last:border-0 last:pb-0">
                 <Label className="text-sm text-primary leading-relaxed">
                   <strong>{sqd.id.toUpperCase()}: {sqd.text}</strong> {sqd.required && <span className="text-destructive">*</span>}
                 </Label>
@@ -1280,12 +1383,11 @@ export function SurveyForm({ onBackToLanding, questions, onSubmitResponse, kiosk
         <div className="space-y-5 pt-6">
           <Button 
             type="submit" 
-            disabled={!isFormComplete}
-            className="w-full bg-secondary hover:bg-secondary/90 text-secondary-foreground h-16 shadow-[0_6px_24px_rgba(0,123,255,0.3)] hover:shadow-[0_8px_30px_rgba(0,123,255,0.4)] transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-[0_6px_24px_rgba(0,123,255,0.3)]"
+            className="w-full bg-secondary hover:bg-secondary/90 text-secondary-foreground h-16 shadow-[0_6px_24px_rgba(0,123,255,0.3)] hover:shadow-[0_8px_30px_rgba(0,123,255,0.4)] transition-all"
             size="lg"
           >
             <CheckCircle2 className="w-5 h-5 mr-2" />
-            {isFormComplete ? 'SUBMIT FEEDBACK' : `COMPLETE ALL FIELDS (${Math.round(progress)}%)`}
+            {isFormComplete ? 'SUBMIT FEEDBACK' : `SUBMIT (${Math.round(progress)}% COMPLETE)`}
           </Button>
 
           <div className="text-center space-y-2">
