@@ -20,6 +20,7 @@ import { DraggableQuestionItem } from './DraggableQuestionItem';
 import { useAuth } from '../context/AuthContext';
 import { addUserToFirebase, getAllUsers, subscribeToUsers, updateUserProfile, deleteUserProfile, AdminUser } from '../services/firebaseUserService';
 import { canManageUsers, canManageQuestions, canViewResponses, canConfigureSettings } from '../services/permissionService';
+import { exportToCSV, generatePDFReport } from '../services/exportService';
 
 interface AdminDashboardProps {
   responses: SurveyResponse[];
@@ -352,10 +353,30 @@ export function AdminDashboard({
   };
 
   const confirmExport = () => {
-    console.log(`Exporting ${exportType}...`);
-    setExportConfirmOpen(false);
-    setActionSuccessMessage(`${exportType} export started! Your download will begin shortly.`);
-    setActionSuccessOpen(true);
+    try {
+      setExportConfirmOpen(false);
+      
+      const timestamp = new Date().toISOString().split('T')[0];
+      
+      if (exportType === 'CSV' || exportType === 'CSV Export') {
+        exportToCSV(filteredResponses, questions, `survey_responses_${timestamp}.csv`);
+        setActionSuccessMessage(`CSV export started! Your download will begin shortly.`);
+      } else if (exportType === 'PDF Report') {
+        generatePDFReport(filteredResponses, questions, `survey_report_${timestamp}.pdf`);
+        setActionSuccessMessage(`PDF report generated! Your download will begin shortly.`);
+      } else if (exportType === 'ARTA Compliance Report') {
+        generatePDFReport(filteredResponses, questions, `arta_compliance_report_${timestamp}.pdf`);
+        setActionSuccessMessage(`ARTA Compliance report generated! Your download will begin shortly.`);
+      } else {
+        setActionSuccessMessage(`${exportType} export completed!`);
+      }
+      
+      setActionSuccessOpen(true);
+    } catch (error) {
+      console.error('Export error:', error);
+      setActionErrorMessage(`Failed to export ${exportType}. Please try again.`);
+      setActionErrorOpen(true);
+    }
   };
 
   const handleChangePassword = (e: React.FormEvent) => {
