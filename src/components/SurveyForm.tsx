@@ -61,6 +61,17 @@ export function SurveyForm({ onBackToLanding, questions, onSubmitResponse, kiosk
     }
   };
 
+  const handleAdminLogin = () => {
+    // Trigger Ctrl+Shift+A keyboard shortcut to open admin login
+    const event = new KeyboardEvent('keydown', {
+      key: 'a',
+      ctrlKey: true,
+      shiftKey: true,
+      bubbles: true,
+    });
+    window.dispatchEvent(event);
+  };
+
   // Initialize formData with dynamic question IDs
   const [formData, setFormData] = useState<Record<string, string>>(() => {
     const initialData: Record<string, string> = {
@@ -672,6 +683,19 @@ export function SurveyForm({ onBackToLanding, questions, onSubmitResponse, kiosk
                 <p className="text-xs text-[#5a6c84]">{Math.round(progress)}% Complete</p>
               </div>
             </div>
+            
+            {/* Admin Login Button for Testing - Desktop */}
+            <div className="pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleAdminLogin}
+                className="w-full border-[#0D3B66] text-[#0D3B66] hover:bg-[#0D3B66] hover:text-white transition-all text-xs"
+              >
+                Admin Login (Testing)
+              </Button>
+            </div>
           </div>
         </aside>
 
@@ -720,6 +744,18 @@ export function SurveyForm({ onBackToLanding, questions, onSubmitResponse, kiosk
               <span className="text-sm text-primary">{Math.round(progress)}%</span>
             </div>
             <Progress value={progress} className="h-2" />
+            {/* Admin Login Button for Testing - Mobile */}
+            <div className="mt-3 flex justify-end">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={handleAdminLogin}
+                className="text-xs text-muted-foreground hover:text-primary"
+              >
+                Admin
+              </Button>
+            </div>
           </div>
         </div>
 

@@ -6,7 +6,7 @@ import { Label } from './ui/label';
 import { Textarea } from './ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, LineChart, Line } from 'recharts';
-import { Download, Users, Award, FileText, Search, Bell, LogOut, Menu, X, LayoutDashboard, Database, FileBarChart, Settings, UserCog, Edit2, Trash2, Plus, Eye, Calendar, Filter, ChevronDown, Shield, TrendingUp, Activity, Clock, CheckCircle, AlertCircle, BarChart3, PieChart as PieChartIcon, LineChart as LineChartIcon, QrCode, HardDrive, Monitor, MonitorOff, Smartphone, XCircle, Frown, Meh, Smile, Star, MinusCircle, MessageSquare, FileCheck, Loader } from 'lucide-react';
+import { Download, Users, Award, FileText, Search, Bell, LogOut, Menu, X, LayoutDashboard, Database, FileBarChart, Settings, UserCog, Edit2, Trash2, Plus, Eye, Calendar, Filter, ChevronDown, Shield, TrendingUp, Activity, Clock, CheckCircle, AlertCircle, BarChart3, PieChart as PieChartIcon, LineChart as LineChartIcon, QrCode, HardDrive, Monitor, MonitorOff, Smartphone, XCircle, Frown, Meh, Smile, Star, MinusCircle, MessageSquare, FileCheck, Loader, ArrowLeft } from 'lucide-react';
 import { Badge } from './ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Switch } from './ui/switch';
@@ -696,7 +696,18 @@ export function AdminDashboard({
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 flex items-center justify-center p-4">
         <Card className="max-w-md w-full shadow-[0_20px_60px_rgba(0,0,0,0.15)] border-2 border-border">
-          <CardHeader className="text-center space-y-6 pb-8">
+          <CardHeader className="text-center space-y-6 pb-8 relative">
+            {/* Back Button */}
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={onLogout}
+              className="absolute top-4 left-4 text-muted-foreground hover:text-primary"
+            >
+              <ArrowLeft className="w-4 h-4 mr-1" />
+              Back
+            </Button>
             <div className="flex justify-center">
               <div className="w-24 h-24 bg-primary rounded-full flex items-center justify-center shadow-lg">
                 <Shield className="w-14 h-14 text-primary-foreground" />
