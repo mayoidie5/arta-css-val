@@ -67,7 +67,7 @@ export function SurveyForm({ onBackToLanding, questions, onSubmitResponse, kiosk
       clientType: '',
       date: '',
       sex: '',
-      age: kioskMode ? '18' : '', // Default to 18 in kiosk mode for easier input
+      age: '', // Do not default age in any mode - let validation require proper input
       region: '',
       service: '',
       serviceOther: '',
@@ -86,6 +86,7 @@ export function SurveyForm({ onBackToLanding, questions, onSubmitResponse, kiosk
   const [submitted, setSubmitted] = useState(false);
   const [referenceId, setReferenceId] = useState('');
   const [activeSection, setActiveSection] = useState('client-info');
+  const [emptyFields, setEmptyFields] = useState<Set<string>>(new Set());
 
   const generateReferenceId = () => {
     const timestamp = Date.now();
@@ -261,10 +262,26 @@ export function SurveyForm({ onBackToLanding, questions, onSubmitResponse, kiosk
     // Check for unanswered required fields
     const unansweredField = findFirstUnansweredField();
     if (unansweredField) {
-      // Scroll to the unanswered field
+      // Collect all empty required fields for highlighting
+      const requiredFields = getRequiredFields();
+      const emptyFieldsSet = new Set<string>();
+      
+      for (const field of requiredFields) {
+        const value = formData[field as keyof typeof formData];
+        if (!value || (typeof value === 'string' && value.trim() === '')) {
+          emptyFieldsSet.add(field);
+        }
+      }
+      
+      setEmptyFields(emptyFieldsSet);
+      
+      // Scroll to the first unanswered field
       scrollToField(unansweredField);
       return;
     }
+
+    // Clear empty fields on successful validation
+    setEmptyFields(new Set());
 
     const refId = generateReferenceId();
     setReferenceId(refId);
@@ -720,7 +737,9 @@ export function SurveyForm({ onBackToLanding, questions, onSubmitResponse, kiosk
               <Label htmlFor="clientType" className="text-primary">
                 Client Type <span className="text-destructive">*</span>
               </Label>
-              <div id="clientType">
+              <div id="clientType" className={`p-4 rounded-lg border-2 transition-all ${
+                emptyFields.has('clientType') ? 'border-red-500 bg-red-50' : ''
+              }`}>
                 <RadioGroup value={formData.clientType} onValueChange={(value) => updateField('clientType', value)}>
                   <Label 
                     htmlFor="citizen" 
@@ -764,8 +783,8 @@ export function SurveyForm({ onBackToLanding, questions, onSubmitResponse, kiosk
                 value={formData.date}
                 onChange={(date) => updateField('date', date)}
                 label="Date"
-                required
                 maxDate={new Date()}
+                error={emptyFields.has('date')}
               />
             </div>
 
@@ -773,32 +792,36 @@ export function SurveyForm({ onBackToLanding, questions, onSubmitResponse, kiosk
               <Label htmlFor="sex" className="text-primary">
                 Sex <span className="text-destructive">*</span>
               </Label>
-              <RadioGroup value={formData.sex} onValueChange={(value) => updateField('sex', value)}>
-                <div className="flex gap-4">
-                  <Label 
-                    htmlFor="male" 
-                    className={`flex items-center space-x-3 p-4 rounded-lg flex-1 border-2 transition-all cursor-pointer ${
-                      formData.sex === 'male' 
-                        ? 'bg-secondary/10 border-secondary shadow-md' 
-                        : 'bg-muted/50 border-border hover:border-secondary'
-                    }`}
-                  >
-                    <RadioGroupItem value="male" id="male" />
-                    <span>Male</span>
-                  </Label>
-                  <Label 
-                    htmlFor="female" 
-                    className={`flex items-center space-x-3 p-4 rounded-lg flex-1 border-2 transition-all cursor-pointer ${
-                      formData.sex === 'female' 
-                        ? 'bg-secondary/10 border-secondary shadow-md' 
-                        : 'bg-muted/50 border-border hover:border-secondary'
-                    }`}
-                  >
-                    <RadioGroupItem value="female" id="female" />
-                    <span>Female</span>
-                  </Label>
-                </div>
-              </RadioGroup>
+              <div className={`p-4 rounded-lg border-2 transition-all ${
+                emptyFields.has('sex') ? 'border-red-500 bg-red-50' : ''
+              }`}>
+                <RadioGroup value={formData.sex} onValueChange={(value) => updateField('sex', value)}>
+                  <div className="flex gap-4">
+                    <Label 
+                      htmlFor="male" 
+                      className={`flex items-center space-x-3 p-4 rounded-lg flex-1 border-2 transition-all cursor-pointer ${
+                        formData.sex === 'male' 
+                          ? 'bg-secondary/10 border-secondary shadow-md' 
+                          : 'bg-muted/50 border-border hover:border-secondary'
+                      }`}
+                    >
+                      <RadioGroupItem value="male" id="male" />
+                      <span>Male</span>
+                    </Label>
+                    <Label 
+                      htmlFor="female" 
+                      className={`flex items-center space-x-3 p-4 rounded-lg flex-1 border-2 transition-all cursor-pointer ${
+                        formData.sex === 'female' 
+                          ? 'bg-secondary/10 border-secondary shadow-md' 
+                          : 'bg-muted/50 border-border hover:border-secondary'
+                      }`}
+                    >
+                      <RadioGroupItem value="female" id="female" />
+                      <span>Female</span>
+                    </Label>
+                  </div>
+                </RadioGroup>
+              </div>
             </div>
 
             <div className="space-y-4" id="age">
@@ -809,7 +832,11 @@ export function SurveyForm({ onBackToLanding, questions, onSubmitResponse, kiosk
                 <div className="space-y-3">
                   {/* Touch-friendly age input with number pad */}
                   <div 
-                    className="flex items-center justify-center bg-white border-2 border-primary/30 rounded-lg p-6 cursor-pointer hover:border-primary transition-colors shadow-sm"
+                    className={`flex items-center justify-center border-2 rounded-lg p-6 cursor-pointer transition-colors shadow-sm ${
+                      emptyFields.has('age') 
+                        ? 'bg-red-50 border-red-500' 
+                        : 'bg-white border-primary/30 hover:border-primary'
+                    }`}
                     onClick={(e) => {
                       const input = (e.currentTarget.querySelector('input') as HTMLInputElement);
                       if (input) {
@@ -855,9 +882,8 @@ export function SurveyForm({ onBackToLanding, questions, onSubmitResponse, kiosk
                   max="120"
                   value={formData.age}
                   onChange={(e) => updateField('age', e.target.value)}
-                  className="w-full border-border"
+                  className={`w-full ${emptyFields.has('age') ? 'border-red-500 bg-red-50' : 'border-border'}`}
                   placeholder="Enter your age"
-                  required
                 />
               )}
             </div>
@@ -867,7 +893,7 @@ export function SurveyForm({ onBackToLanding, questions, onSubmitResponse, kiosk
                 Region of Residence <span className="text-destructive">*</span>
               </Label>
               <Select value={formData.region} onValueChange={(value) => updateField('region', value)}>
-                <SelectTrigger id="region" className="border-border">
+                <SelectTrigger id="region" className={`${emptyFields.has('region') ? 'border-red-500 bg-red-50' : 'border-border'}`}>
                   <SelectValue placeholder="Please select your region" />
                 </SelectTrigger>
                 <SelectContent>
@@ -897,7 +923,7 @@ export function SurveyForm({ onBackToLanding, questions, onSubmitResponse, kiosk
                 Service Availed <span className="text-destructive">*</span>
               </Label>
               <Select value={formData.service} onValueChange={(value) => updateField('service', value)}>
-                <SelectTrigger id="service" className="border-border">
+                <SelectTrigger id="service" className={`${emptyFields.has('service') ? 'border-red-500 bg-red-50' : 'border-border'}`}>
                   <SelectValue placeholder="Please select the service you availed" />
                 </SelectTrigger>
                 <SelectContent>
@@ -923,9 +949,8 @@ export function SurveyForm({ onBackToLanding, questions, onSubmitResponse, kiosk
                   type="text"
                   value={formData.serviceOther}
                   onChange={(e) => updateField('serviceOther', e.target.value)}
-                  className="w-full border-border"
+                  className={`w-full ${emptyFields.has('serviceOther') ? 'border-red-500 bg-red-50' : 'border-border'}`}
                   placeholder="Enter the service you availed"
-                  required
                 />
                 <p className="text-xs text-muted-foreground italic">Please provide the name of the service you availed.</p>
               </div>
@@ -946,7 +971,9 @@ export function SurveyForm({ onBackToLanding, questions, onSubmitResponse, kiosk
           <CardContent className="space-y-7 pt-6">
             {/* Dynamic CC Questions */}
             {questions.filter(q => q.category === 'CC').map((ccQuestion, index) => (
-              <div key={ccQuestion.id} id={ccQuestion.id} className="space-y-4">
+              <div key={ccQuestion.id} id={ccQuestion.id} className={`space-y-4 p-4 rounded-lg border-2 transition-all ${
+                emptyFields.has(ccQuestion.id) ? 'border-red-500 bg-red-50' : ''
+              }`}>
                   <Label className="text-primary">
                     <strong>{ccQuestion.id.toUpperCase()}:</strong> {ccQuestion.text} {ccQuestion.required && <span className="text-destructive">*</span>}
                   </Label>
@@ -1180,7 +1207,9 @@ export function SurveyForm({ onBackToLanding, questions, onSubmitResponse, kiosk
           </CardHeader>
           <CardContent className="space-y-8 pt-6">
             {questions.filter(q => q.category === 'SQD').map((sqd) => (
-              <div key={sqd.id} id={sqd.id} className="space-y-5 pb-8 border-b border-border last:border-0 last:pb-0">
+              <div key={sqd.id} id={sqd.id} className={`space-y-5 pb-8 border-b border-border last:border-0 last:pb-0 p-4 rounded-lg transition-all ${
+                emptyFields.has(sqd.id) ? 'border-red-500 bg-red-50' : ''
+              }`}>
                 <Label className="text-sm text-primary leading-relaxed">
                   <strong>{sqd.id.toUpperCase()}: {sqd.text}</strong> {sqd.required && <span className="text-destructive">*</span>}
                 </Label>

@@ -10,9 +10,10 @@ interface CustomDatePickerProps {
   label: string;
   required?: boolean;
   maxDate?: Date;
+  error?: boolean;
 }
 
-export function CustomDatePicker({ value, onChange, label, required = false, maxDate }: CustomDatePickerProps) {
+export function CustomDatePicker({ value, onChange, label, required = false, maxDate, error = false }: CustomDatePickerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
@@ -141,9 +142,9 @@ export function CustomDatePicker({ value, onChange, label, required = false, max
         <PopoverTrigger asChild>
           <Button
             variant="outline"
-            className={`w-full justify-start text-left font-normal border-border h-12 ${
-              !value && 'text-muted-foreground'
-            }`}
+            className={`w-full justify-start text-left font-normal h-12 ${
+              error ? 'border-red-500 bg-red-50' : 'border-border'
+            } ${!value && 'text-muted-foreground'}`}
             aria-label={`${label}, ${formatDisplayDate()}`}
             aria-haspopup="dialog"
             aria-expanded={isOpen}
