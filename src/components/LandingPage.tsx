@@ -9,6 +9,7 @@ import valenzuelaLogo from 'figma:asset/3da91e378b5746d28e242948a192281543f29d21
 import { PrivacyPolicyDialog } from './PrivacyPolicyDialog';
 import { TermsOfUseDialog } from './TermsOfUseDialog';
 import { AccessibilityDialog } from './AccessibilityDialog';
+import ArtaSurveyImage from '../assets/ARTA-Survey.png';
 
 interface LandingPageProps {
   onTakeSurvey: () => void;
@@ -519,7 +520,7 @@ export function LandingPage({ onTakeSurvey, onAdminLogin, responses, kioskMode =
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <QrCode className="w-5 h-5 text-[#0D3B66]" />
+              <img src={ArtaSurveyImage} alt="ARTA Survey" className="w-5 h-5" />
               Scan QR Code to Access Survey
             </DialogTitle>
             <DialogDescription>
@@ -529,7 +530,7 @@ export function LandingPage({ onTakeSurvey, onAdminLogin, responses, kioskMode =
           <div className="py-8">
             <div className="bg-[#F5F9FC] rounded-xl p-8 flex items-center justify-center border-2 border-dashed border-[#3FA7D6]">
               <div className="bg-white p-6 rounded-lg shadow-xl">
-                <QrCode className="w-40 h-40 text-[#0D3B66]" strokeWidth={1} />
+                <img src={ArtaSurveyImage} alt="ARTA Survey QR" className="w-40 h-40" />
               </div>
             </div>
             <p className="text-sm text-[#0B172A]/60 text-center mt-6">

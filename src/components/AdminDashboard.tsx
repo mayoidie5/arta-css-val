@@ -21,6 +21,7 @@ import { useAuth } from '../context/AuthContext';
 import { addUserToFirebase, getAllUsers, subscribeToUsers, updateUserProfile, deleteUserProfile, AdminUser } from '../services/firebaseUserService';
 import { canManageUsers, canManageQuestions, canViewResponses, canConfigureSettings } from '../services/permissionService';
 import { exportToCSV, generatePDFReport } from '../services/exportService';
+import ArtaSurveyImage from '../assets/ARTA-Survey.png';
 
 interface AdminDashboardProps {
   responses: SurveyResponse[];
@@ -2458,7 +2459,7 @@ export function AdminDashboard({
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <QrCode className="w-5 h-5 text-primary" />
+              <img src={ArtaSurveyImage} alt="ARTA Survey" className="w-5 h-5" />
               Survey QR Code
             </DialogTitle>
             <DialogDescription>
@@ -2468,7 +2469,7 @@ export function AdminDashboard({
           <div className="py-8">
             <div className="bg-muted rounded-xl p-8 flex items-center justify-center border-2 border-dashed border-primary">
               <div className="bg-white p-6 rounded-lg shadow-xl">
-                <QrCode className="w-40 h-40 text-primary" strokeWidth={1} />
+                <img src={ArtaSurveyImage} alt="ARTA Survey QR" className="w-40 h-40" />
               </div>
             </div>
             <div className="mt-6 space-y-3">
