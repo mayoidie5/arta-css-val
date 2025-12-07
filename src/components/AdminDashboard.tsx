@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -21,7 +21,9 @@ import { useAuth } from '../context/AuthContext';
 import { addUserToFirebase, getAllUsers, subscribeToUsers, updateUserProfile, deleteUserProfile, AdminUser } from '../services/firebaseUserService';
 import { canManageUsers, canManageQuestions, canViewResponses, canConfigureSettings } from '../services/permissionService';
 import { exportToCSV, generatePDFReport } from '../services/exportService';
+import { getPendingResponses, markResponseAsSynced, deleteResponse } from '../services/offlineStorage';
 import ArtaSurveyImage from '../assets/ARTA-Survey.png';
+import { getFirestore, collection, addDoc } from 'firebase/firestore';
 
 interface AdminDashboardProps {
   responses: SurveyResponse[];
@@ -124,11 +126,16 @@ export function AdminDashboard({
     choices: [''] 
   });
 
-  // Settings state
+  // Settings state - Initialize offline mode from localStorage
   const [kioskMode, setKioskMode] = useState(false);
   const [kioskOrientation, setKioskOrientation] = useState<'landscape' | 'portrait'>('landscape');
-  const [offlineMode, setOfflineMode] = useState(false);
+  const [offlineMode, setOfflineMode] = useState(() => localStorage.getItem('offlineMode') === 'true');
+  const [offlineModePressed, setOfflineModePressed] = useState(false);
   const [dataRetention, setDataRetention] = useState('1year');
+  
+  // Ref to track if this is the first render (for offline mode)
+  const isFirstRenderRef = useRef(true);
+  
   const [kioskModeConfirmOpen, setKioskModeConfirmOpen] = useState(false);
   const [sortedQuestions, setSortedQuestions] = useState<SurveyQuestion[]>([]);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -174,6 +181,88 @@ export function AdminDashboard({
       setKioskOrientation(savedOrientation);
     }
   }, []);
+
+  // Handle offline mode toggle with persistence and feedback
+  useEffect(() => {
+    localStorage.setItem('offlineMode', offlineMode.toString());
+    
+    // Skip on first render - only process actual toggles
+    if (isFirstRenderRef.current) {
+      isFirstRenderRef.current = false;
+      // Apply offline class on mount if needed
+      if (offlineMode) {
+        document.body.classList.add('offline');
+      }
+      return;
+    }
+    
+    // This runs on actual toggle
+    if (offlineMode) {
+      document.body.classList.add('offline');
+      // Don't show notification when enabling
+    } else {
+      document.body.classList.remove('offline');
+      // Sync pending responses when offline mode is disabled
+      syncPendingResponses();
+    }
+  }, [offlineMode]);
+
+  // Function to sync pending offline responses to Firebase
+  const syncPendingResponses = async () => {
+    try {
+      setActionSuccessMessage('🔄 Syncing offline responses to Firebase...');
+      setActionSuccessOpen(true);
+
+      const pendingResponses = await getPendingResponses();
+      
+      if (pendingResponses.length === 0) {
+        setActionSuccessMessage('✅ Offline Mode DISABLED - No pending responses to sync');
+        setActionSuccessOpen(true);
+        return;
+      }
+
+      const db = getFirestore();
+      const responsesRef = collection(db, 'responses');
+      let syncedCount = 0;
+      let failedCount = 0;
+
+      for (const storedResponse of pendingResponses) {
+        try {
+          // Add timestamp to response data before uploading
+          const responseData = {
+            ...storedResponse.data,
+            timestamp: storedResponse.data.timestamp || Date.now()
+          };
+          
+          console.log('📤 Uploading response:', responseData);
+          
+          // Add response to Firebase
+          const docRef = await addDoc(responsesRef, responseData);
+          console.log('✅ Response uploaded with ID:', docRef.id);
+          
+          // Mark as synced in IndexedDB
+          await markResponseAsSynced(storedResponse.id);
+          // Delete from offline storage after successful sync
+          await deleteResponse(storedResponse.id);
+          syncedCount++;
+        } catch (error) {
+          console.error('Failed to sync response:', storedResponse.id, error);
+          failedCount++;
+        }
+      }
+
+      if (failedCount === 0) {
+        setActionSuccessMessage(`✅ Offline Mode DISABLED - Successfully synced ${syncedCount} response(s) to Database`);
+      } else {
+        setActionSuccessMessage(`⚠️ Offline Mode DISABLED - Synced ${syncedCount} response(s), Failed: ${failedCount}`);
+      }
+      setActionSuccessOpen(true);
+    } catch (error) {
+      console.error('Error syncing pending responses:', error);
+      setActionErrorMessage('⚠️ Error syncing offline responses. Please try again.');
+      setActionErrorOpen(true);
+    }
+  };
 
   // Load Firebase users on mount and keep subscription active
   useEffect(() => {
@@ -250,6 +339,16 @@ export function AdminDashboard({
       setActionSuccessMessage(`Kiosk orientation updated to ${orientation} mode.`);
       setActionSuccessOpen(true);
     }
+  };
+
+  const handleOfflineModeToggle = (checked: boolean) => {
+    setOfflineMode(checked);
+    setOfflineModePressed(true);
+    
+    // Reset animation after 500ms
+    setTimeout(() => {
+      setOfflineModePressed(false);
+    }, 500);
   };
 
   const moveQuestion = useCallback((dragIndex: number, hoverIndex: number) => {
@@ -1610,12 +1709,26 @@ export function AdminDashboard({
                       </div>
                     </div>
                     <Separator />
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-medium">Offline Mode</p>
-                        <p className="text-sm text-muted-foreground">Allow offline data collection</p>
+                    <div className={`flex items-center justify-between p-4 rounded-lg border-2 transition-all transform ${
+                      offlineMode 
+                        ? 'border-orange-300 bg-orange-50' 
+                        : 'border-gray-200 bg-white'
+                    } ${offlineModePressed ? 'scale-105 shadow-lg' : ''}`}>
+                      <div className="flex-1">
+                        <p className={`font-semibold ${offlineMode ? 'text-orange-900' : 'text-gray-900'}`}>
+                          Offline Mode
+                        </p>
+                        <p className={`text-sm ${offlineMode ? 'text-orange-700' : 'text-gray-600'}`}>
+                          {offlineMode 
+                            ? '🔴 ACTIVE - Responses saved locally' 
+                            : '⚪ OFF - Responses sync directly to Database'}
+                        </p>
                       </div>
-                      <Switch checked={offlineMode} onCheckedChange={setOfflineMode} />
+                      <Switch 
+                        checked={offlineMode} 
+                        onCheckedChange={handleOfflineModeToggle}
+                        className="ml-4"
+                      />
                     </div>
                   </CardContent>
                 </Card>
