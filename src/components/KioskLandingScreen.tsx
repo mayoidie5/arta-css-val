@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import { Award, ClipboardCheck, HandHelping, MonitorSmartphone, Hand, Sparkles, CheckCircle2, QrCode } from 'lucide-react';
 import { useState } from 'react';
 import valenzuelaLogo from 'figma:asset/3da91e378b5746d28e242948a192281543f29d21.png';
+import ArtaSurveyImage from '../assets/ARTA-Survey.png';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { Button } from './ui/button';
 import { QRCodeScanner } from './QRCodeScanner';
@@ -204,14 +205,29 @@ export function KioskLandingScreen({ onStartSurvey }: KioskLandingScreenProps) {
               </div>
             </motion.button>
 
-            {/* QR Scanner Button */}
-            <Button
-              onClick={() => setShowQRScanner(true)}
-              className="group relative inline-flex items-center gap-3 px-8 py-6 bg-secondary hover:bg-secondary/90 text-secondary-foreground rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
-            >
-              <QrCode className="w-6 h-6" />
-              <span className="font-semibold">Scan QR Code</span>
-            </Button>
+            {/* QR Scanner Button with ARTA-Survey Image */}
+            <div className="flex flex-col items-center gap-6">
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ delay: 1.0, duration: 0.5 }}
+                className="bg-white p-6 rounded-2xl shadow-lg border-2 border-gray-200 hover:border-[#3FA7D6] transition-all duration-300"
+              >
+                <ImageWithFallback
+                  src={ArtaSurveyImage}
+                  alt="ARTA Survey - Scan to Start"
+                  className="h-40 w-auto object-contain"
+                />
+              </motion.div>
+              
+              <Button
+                onClick={() => setShowQRScanner(true)}
+                className="group relative inline-flex items-center gap-3 px-8 py-6 bg-secondary hover:bg-secondary/90 text-secondary-foreground rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
+              >
+                <QrCode className="w-6 h-6" />
+                <span className="font-semibold">Scan QR Code</span>
+              </Button>
+            </div>
 
             <motion.div
               animate={{ 
