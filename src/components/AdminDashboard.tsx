@@ -1021,13 +1021,6 @@ export function AdminDashboard({
                 <h2 className="text-primary hidden xl:block truncate">ARTA Customer Satisfaction Survey Dashboard</h2>
                 <h2 className="text-primary hidden md:block xl:hidden truncate">ARTA CSS Dashboard</h2>
               </div>
-              {/* Live Status Indicator */}
-              <div className="flex items-center gap-2 flex-shrink-0 ml-auto md:ml-0">
-                <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-green-50 border border-green-200">
-                  <div className={`w-2 h-2 rounded-full ${newResponseNotification ? 'bg-green-600 animate-pulse' : 'bg-green-500'}`}></div>
-                  <span className="text-xs font-medium text-green-700 hidden sm:inline">Live</span>
-                </div>
-              </div>
             </div>
 
             {/* Search Bar - Only show in Raw Responses */}
@@ -1800,7 +1793,7 @@ export function AdminDashboard({
       
       {/* View Response Details Dialog */}
       <Dialog open={!!selectedResponse} onOpenChange={() => setSelectedResponse(null)}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="w-[95vw] max-w-2xl max-h-[90vh] overflow-y-auto sm:w-full p-4 sm:p-6">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-primary">
               <Eye className="w-5 h-5" />
