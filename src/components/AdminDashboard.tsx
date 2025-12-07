@@ -134,6 +134,7 @@ export function AdminDashboard({
   const [saveOrderConfirmOpen, setSaveOrderConfirmOpen] = useState(false);
   const [unsavedChangesWarningOpen, setUnsavedChangesWarningOpen] = useState(false);
   const [pendingSection, setPendingSection] = useState<string | null>(null);
+  const [reloading, setReloading] = useState(false);
   
   // Live update notification state
   const [lastResponseCount, setLastResponseCount] = useState(responses.length);
@@ -329,8 +330,9 @@ export function AdminDashboard({
     setLoginError('');
     try {
       await login(loginEmail, loginPassword);
-      setLoginEmail('');
-      setLoginPassword('');
+      setReloading(true);
+      // Reload the page instantly after successful login
+      location.reload();
     } catch (err) {
       setLoginError(authError || 'Login failed');
     }
@@ -695,6 +697,16 @@ export function AdminDashboard({
   if (!firebaseUser) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 flex items-center justify-center p-4">
+        {reloading && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="text-center space-y-4">
+              <div className="inline-block">
+                <div className="w-16 h-16 border-4 border-white border-t-blue-500 rounded-full animate-spin"></div>
+              </div>
+              <p className="text-white font-semibold">Loading your session...</p>
+            </div>
+          </div>
+        )}
         <Card className="max-w-md w-full shadow-[0_20px_60px_rgba(0,0,0,0.15)] border-2 border-border">
           <CardHeader className="text-center space-y-6 pb-8 relative">
             {/* Back Button */}
