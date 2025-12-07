@@ -6,6 +6,7 @@ import { KioskLandingScreen } from './components/KioskLandingScreen';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { getFirestore, collection, addDoc, query, orderBy, onSnapshot } from 'firebase/firestore';
 import { subscribeToQuestions, addQuestion, updateQuestion, deleteQuestion, reorderQuestions, questionsExist, syncAllQuestions } from './services/questionService';
+import { saveOfflineResponse, getPendingResponses, markResponseAsSynced, deleteResponse } from './services/offlineStorage';
 import './firebase';
 
 // Types
@@ -59,6 +60,8 @@ function AppContent() {
   const { user, loading } = useAuth();
   const [view, setView] = useState<'landing' | 'survey' | 'admin'>('landing');
   const [kioskMode, setKioskMode] = useState(false);
+  const [offlineNotification, setOfflineNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [offlineMode, setOfflineMode] = useState(false);
 
   // Survey Questions State
   const [questions, setQuestions] = useState<SurveyQuestion[]>([
@@ -252,6 +255,24 @@ function AppContent() {
     };
   }, []);
 
+  // Listen for offline mode changes
+  useEffect(() => {
+    const handleOfflineModeChange = () => {
+      const isOfflineMode = localStorage.getItem('offlineMode') === 'true';
+      setOfflineMode(isOfflineMode);
+    };
+    
+    // Check initial state
+    handleOfflineModeChange();
+    
+    // Listen for storage changes
+    window.addEventListener('storage', handleOfflineModeChange);
+    
+    return () => {
+      window.removeEventListener('storage', handleOfflineModeChange);
+    };
+  }, []);
+
   // Emergency keyboard shortcut to disable kiosk mode (Ctrl+Shift+K)
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
@@ -367,20 +388,120 @@ function AppContent() {
 
   const handleSubmitResponse = async (response: Omit<SurveyResponse, 'id' | 'timestamp'>) => {
     const db = getFirestore();
+    
+    // Check if in offline mode OR if actually offline
+    const offlineModeEnabled = localStorage.getItem('offlineMode') === 'true';
+    const isOffline = !navigator.onLine || offlineModeEnabled;
+    
+    if (isOffline) {
+      try {
+        // Save to IndexedDB for later sync
+        await saveOfflineResponse(response);
+        const modeLabel = offlineModeEnabled ? '(Offline Mode)' : '(No Internet)';
+        console.log(`📋 Survey response saved offline ${modeLabel} - will sync when online`);
+        setOfflineNotification({
+          message: '✅ Survey saved offline. Will sync automatically when back online.',
+          type: 'success'
+        });
+        // Clear notification after 5 seconds
+        setTimeout(() => setOfflineNotification(null), 5000);
+        return;
+      } catch (error) {
+        console.error('❌ Error saving offline response:', error);
+        setOfflineNotification({
+          message: '⚠️ Failed to save response. Please try again.',
+          type: 'error'
+        });
+        setTimeout(() => setOfflineNotification(null), 5000);
+        return;
+      }
+    }
+    
+    // Upload to Firebase if online
     try {
       const docRef = await addDoc(collection(db, "responses"), {
         ...response,
         timestamp: Date.now(),
       });
-      console.log("Document written with ID: ", docRef.id);
+      console.log("✅ Document written with ID: ", docRef.id);
       // No need to update local state - the real-time listener will handle it
     } catch (e) {
-      console.error("Error adding document: ", e);
+      console.error("❌ Error adding document: ", e);
+      // Try to save offline as fallback
+      try {
+        await saveOfflineResponse(response);
+        console.log('📋 Saved to offline storage as fallback');
+        setOfflineNotification({
+          message: '⚠️ Failed to upload. Saved locally for later sync.',
+          type: 'error'
+        });
+        setTimeout(() => setOfflineNotification(null), 5000);
+      } catch (offlineError) {
+        console.error('❌ Offline save also failed:', offlineError);
+      }
     }
   };
 
+  // Background sync: when coming online, sync pending responses
+  useEffect(() => {
+    const handleOnline = async () => {
+      console.log('🌐 Back online! Syncing pending responses...');
+      try {
+        const pending = await getPendingResponses();
+        if (pending.length === 0) {
+          console.log('✅ No pending responses to sync');
+          return;
+        }
+        
+        console.log(`📋 Found ${pending.length} pending responses to sync`);
+        const db = getFirestore();
+        let successCount = 0;
+        
+        for (const response of pending) {
+          try {
+            const docRef = await addDoc(collection(db, "responses"), {
+              ...response.data,
+              timestamp: response.timestamp,
+            });
+            console.log(`✅ Synced response: ${docRef.id}`);
+            
+            // Mark as synced and delete
+            await markResponseAsSynced(response.id);
+            await deleteResponse(response.id);
+            successCount++;
+          } catch (error) {
+            console.error(`❌ Failed to sync response ${response.id}:`, error);
+          }
+        }
+        
+        console.log(`✅ Sync complete: ${successCount}/${pending.length} responses uploaded`);
+        setOfflineNotification({
+          message: `✅ Synced ${successCount} pending responses to cloud.`,
+          type: 'success'
+        });
+        setTimeout(() => setOfflineNotification(null), 4000);
+      } catch (error) {
+        console.error('❌ Error during background sync:', error);
+      }
+    };
+    
+    window.addEventListener('online', handleOnline);
+    return () => window.removeEventListener('online', handleOnline);
+  }, []);
+
   return (
     <div className="min-h-screen">
+      {/* Offline notification banner */}
+      {offlineNotification && (
+        <div className={`fixed top-4 left-4 right-4 p-4 rounded-lg shadow-lg z-50 animate-slide-down ${
+          offlineNotification.type === 'success' 
+            ? 'bg-green-50 border border-green-200 text-green-800' 
+            : 'bg-red-50 border border-red-200 text-red-800'
+        }`}>
+          {offlineNotification.message}
+        </div>
+      )}
+      
       {loading || responsesLoading || questionsLoading ? (
         <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-primary/5 to-secondary/5">
           <div className="text-center space-y-4">
@@ -391,46 +512,46 @@ function AppContent() {
           </div>
         </div>
       ) : (
-        <>
-        {view === 'landing' && !kioskMode && (
-          <LandingPage 
-            onTakeSurvey={() => setView('survey')} 
-            onAdminLogin={() => setView('admin')}
-            responses={responses}
-            kioskMode={kioskMode}
-          />
-        )}
-        {view === 'landing' && kioskMode && (
-          <KioskLandingScreen 
-            onStartSurvey={() => setView('survey')}
-          />
-        )}
-        {view === 'survey' && (
-          <SurveyForm 
-            onBackToLanding={() => setView('landing')}
-            questions={questions}
-            onSubmitResponse={handleSubmitResponse}
-            kioskMode={kioskMode}
-          />
-        )}
-        {view === 'admin' && (
-          <AdminDashboard 
-            responses={responses}
-            questions={questions}
-            users={users}
-            onAddQuestion={handleAddQuestion}
-            onUpdateQuestion={handleUpdateQuestion}
-            onDeleteQuestion={handleDeleteQuestion}
-            onAddUser={handleAddUser}
-            onUpdateUser={handleUpdateUser}
-            onDeleteUser={handleDeleteUser}
-            onReorderQuestions={handleReorderQuestions}
-            onLogout={() => setView('landing')}
-          />
-        )}
-        </>
+        <div>
+          {view === 'landing' && !kioskMode && (
+            <LandingPage 
+              onTakeSurvey={() => setView('survey')} 
+              onAdminLogin={() => setView('admin')}
+              responses={responses}
+              kioskMode={kioskMode}
+            />
+          )}
+          {view === 'landing' && kioskMode && (
+            <KioskLandingScreen 
+              onStartSurvey={() => setView('survey')}
+            />
+          )}
+          {view === 'survey' && (
+            <SurveyForm 
+              onBackToLanding={() => setView('landing')}
+              questions={questions}
+              onSubmitResponse={handleSubmitResponse}
+              kioskMode={kioskMode}
+            />
+          )}
+          {view === 'admin' && (
+            <AdminDashboard 
+              responses={responses}
+              questions={questions}
+              users={users}
+              onAddQuestion={handleAddQuestion}
+              onUpdateQuestion={handleUpdateQuestion}
+              onDeleteQuestion={handleDeleteQuestion}
+              onAddUser={handleAddUser}
+              onUpdateUser={handleUpdateUser}
+              onDeleteUser={handleDeleteUser}
+              onReorderQuestions={handleReorderQuestions}
+              onLogout={() => setView('landing')}
+            />
+          )}
+        </div>
       )}
-      </div>
+    </div>
   );
 }
 
