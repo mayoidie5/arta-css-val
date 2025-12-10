@@ -39,6 +39,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [validationComplete, setValidationComplete] = useState(false);
 
   // Listen for auth state changes and restore session on page refresh
   useEffect(() => {
@@ -60,7 +61,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               await signOut(auth);
               setFirebaseUser(null);
               setUser(null);
-              setError('User account has been deleted');
+              setError('This account is no longer available');
+              setValidationComplete(true);
               return;
             }
             
@@ -70,7 +72,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               await signOut(auth);
               setFirebaseUser(null);
               setUser(null);
-              setError('User account is inactive');
+              setError('This account is currently inactive');
+              setValidationComplete(true);
               return;
             }
             
@@ -81,13 +84,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               role: userData.role || 'Staff',
               status: userData.status || 'Active'
             });
+            setError(null);
           } else {
             // User document not found in Firestore - sign them out
             console.log(`❌ User ${firebaseUserData.email} not found in Firestore database. Signing out.`);
             await signOut(auth);
             setFirebaseUser(null);
             setUser(null);
-            setError('User not found in database');
+            setError('Wrong email or password');
+            setValidationComplete(true);
+            return;
           }
         } else {
           setFirebaseUser(null);
@@ -98,6 +104,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setError('Failed to load user data');
       } finally {
         setLoading(false);
+        setValidationComplete(true);
       }
     });
 
@@ -111,14 +118,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       await signInWithEmailAndPassword(auth, email, password);
     } catch (err: any) {
       const errorMessage = err.code === 'auth/user-not-found' 
-        ? 'Email not found' 
+        ? 'Wrong email or password' 
         : err.code === 'auth/wrong-password' 
-        ? 'Incorrect password' 
+        ? 'Wrong email or password' 
         : err.code === 'auth/invalid-email'
-        ? 'Invalid email address'
+        ? 'Wrong email or password'
         : err.code === 'auth/user-disabled'
-        ? 'User account has been disabled'
-        : err.message || 'Login failed';
+        ? 'Account is no longer available'
+        : 'Login failed. Please try again.';
       setError(errorMessage);
       throw new Error(errorMessage);
     } finally {

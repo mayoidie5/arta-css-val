@@ -166,6 +166,14 @@ export function AdminDashboard({
     setLastResponseCount(responses.length);
   }, [responses.length, lastResponseCount]);
 
+  // Sync auth errors to login error display
+  // This ensures validation errors (user not found, deleted, inactive) are shown in the login form
+  useEffect(() => {
+    if (authError && !firebaseUser) {
+      setLoginError(authError);
+    }
+  }, [authError, firebaseUser]);
+
   // Initialize sorted questions
   useEffect(() => {
     const sorted = [...questions].sort((a, b) => a.order - b.order);
@@ -428,13 +436,31 @@ export function AdminDashboard({
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError('');
+    clearError(); // Clear any previous errors
+    
     try {
       await login(loginEmail, loginPassword);
+      
+      // Wait for onAuthStateChanged to validate the user
+      // This gives time for any validation errors to be set in the auth context
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // If there's an error from validation (user not found, deleted, inactive, etc)
+      // the authError will be set and user will be null
+      // so we'll be back at the login screen with the error displayed
+      if (!user || authError) {
+        console.log('Validation error detected:', authError);
+        return;
+      }
+      
       setReloading(true);
       // Reload the page instantly after successful login
       location.reload();
-    } catch (err) {
-      setLoginError(authError || 'Login failed');
+    } catch (err: any) {
+      // Get the error message from the caught exception
+      const errorMessage = err.message || 'Login failed';
+      setLoginError(errorMessage);
+      console.error('Login error:', errorMessage);
     }
   };
 
@@ -832,11 +858,6 @@ export function AdminDashboard({
           </CardHeader>
           <CardContent>
             <form onSubmit={handleLogin} className="space-y-6">
-              {loginError && (
-                <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-                  <p className="text-sm text-red-800">{loginError}</p>
-                </div>
-              )}
               <div className="space-y-3">
                 <Label htmlFor="email">Email Address</Label>
                 <Input
@@ -862,6 +883,12 @@ export function AdminDashboard({
                   disabled={authLoading}
                   className="h-12"
                 />
+                {loginError && (
+                  <div className="p-3 bg-red-50 border border-red-200 rounded-md flex gap-2 mt-2">
+                    <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
+                    <p className="text-sm text-red-700">{loginError}</p>
+                  </div>
+                )}
               </div>
               <Button 
                 type="submit" 
