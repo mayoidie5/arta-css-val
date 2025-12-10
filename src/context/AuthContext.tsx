@@ -53,6 +53,27 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           
           if (userDoc.exists()) {
             const userData = userDoc.data();
+            
+            // Check if user is deleted
+            if (userData.deleted === true) {
+              console.log(`❌ User ${firebaseUserData.email} is marked as deleted. Signing out.`);
+              await signOut(auth);
+              setFirebaseUser(null);
+              setUser(null);
+              setError('User account has been deleted');
+              return;
+            }
+            
+            // Check if user is inactive
+            if (userData.status === 'Inactive') {
+              console.log(`❌ User ${firebaseUserData.email} is inactive. Signing out.`);
+              await signOut(auth);
+              setFirebaseUser(null);
+              setUser(null);
+              setError('User account is inactive');
+              return;
+            }
+            
             setUser({
               uid: firebaseUserData.uid,
               email: firebaseUserData.email,
@@ -61,19 +82,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               status: userData.status || 'Active'
             });
           } else {
-            // If user doc doesn't exist, create one with default values
-            const defaultUserData = {
-              name: firebaseUserData.email?.split('@')[0] || 'User',
-              role: 'Staff',
-              status: 'Active',
-              createdAt: new Date().toISOString()
-            };
-            await setDoc(userDocRef, defaultUserData);
-            setUser({
-              uid: firebaseUserData.uid,
-              email: firebaseUserData.email,
-              ...defaultUserData
-            });
+            // User document not found in Firestore - sign them out
+            console.log(`❌ User ${firebaseUserData.email} not found in Firestore database. Signing out.`);
+            await signOut(auth);
+            setFirebaseUser(null);
+            setUser(null);
+            setError('User not found in database');
           }
         } else {
           setFirebaseUser(null);
