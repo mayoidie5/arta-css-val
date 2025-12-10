@@ -20,7 +20,7 @@ import { DraggableQuestionItem } from './DraggableQuestionItem';
 import { useAuth } from '../context/AuthContext';
 import { addUserToFirebase, getAllUsers, subscribeToUsers, updateUserProfile, deleteUserProfile, AdminUser } from '../services/firebaseUserService';
 import { canManageUsers, canManageQuestions, canViewResponses, canConfigureSettings } from '../services/permissionService';
-import { exportToCSV, generatePDFReport } from '../services/exportService';
+import { exportToCSV, generatePDFReport, generateARTAComplianceJSON } from '../services/exportService';
 import { getPendingResponses, markResponseAsSynced, deleteResponse } from '../services/offlineStorage';
 import ArtaSurveyImage from '../assets/ARTA-Survey.png';
 import { getFirestore, collection, addDoc } from 'firebase/firestore';
@@ -467,8 +467,8 @@ export function AdminDashboard({
         generatePDFReport(filteredResponses, questions, `survey_report_${timestamp}.pdf`);
         setActionSuccessMessage(`PDF report generated! Your download will begin shortly.`);
       } else if (exportType === 'ARTA Compliance Report') {
-        generatePDFReport(filteredResponses, questions, `arta_compliance_report_${timestamp}.pdf`);
-        setActionSuccessMessage(`ARTA Compliance report generated! Your download will begin shortly.`);
+        generateARTAComplianceJSON(filteredResponses, questions, `arta_compliance_report_${timestamp}.json`);
+        setActionSuccessMessage(`ARTA Compliance report generated! Your JSON file download will begin shortly.`);
       } else {
         setActionSuccessMessage(`${exportType} export completed!`);
       }

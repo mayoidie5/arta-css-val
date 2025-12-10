@@ -1,5 +1,279 @@
 import { SurveyResponse, SurveyQuestion } from '../App';
 
+interface ARTAComplianceReport {
+  metadata: {
+    reportName: string;
+    generatedDate: string;
+    organization: string;
+    reportVersion: string;
+  };
+  summary: {
+    totalResponses: number;
+    averageSatisfaction: number;
+    reportingPeriod: string;
+  };
+  sqdAnalysis: {
+    sqdQuestions: Array<{
+      questionId: string;
+      questionText: string;
+      averageRating: number;
+      responseCount: number;
+      ratingDistribution: {
+        1: number;
+        2: number;
+        3: number;
+        4: number;
+        5: number;
+        na: number;
+      };
+    }>;
+    overallSQDAverage: number;
+  };
+  ccAnalysis: {
+    ccQuestions: Array<{
+      questionId: string;
+      questionText: string;
+      responses: Record<string, number>;
+    }>;
+  };
+  demographicBreakdown: {
+    byService: Record<string, { count: number; avgRating: number }>;
+    byClientType: Record<string, { count: number; percentage: number }>;
+    byRegion: Record<string, { count: number; percentage: number }>;
+    bySex: Record<string, { count: number; percentage: number }>;
+    byAge: Record<string, { count: number; percentage: number }>;
+  };
+  qualityMetrics: {
+    complianceStatus: string;
+    performanceRating: string;
+    improvementAreas: string[];
+    strengths: string[];
+  };
+  detailedResponses: Array<{
+    refId: string;
+    date: string;
+    service: string;
+    clientType: string;
+    sqdAverage: number;
+    ccResponses: Record<string, string>;
+    suggestions: string;
+  }>;
+}
+
+/**
+ * Generate ARTA Compliance Report as JSON
+ */
+export const generateARTAComplianceJSON = (responses: SurveyResponse[], questions: SurveyQuestion[], filename: string = 'arta_compliance_report.json') => {
+  try {
+    if (responses.length === 0) {
+      console.warn('No responses available for ARTA compliance report');
+    }
+
+    const totalResponses = responses.length;
+    const avgSatisfaction = totalResponses > 0
+      ? responses.reduce((sum, r) => sum + r.sqdAvg, 0) / totalResponses
+      : 0;
+
+    // SQD Analysis
+    const sqdQuestions = questions.filter(q => q.category === 'SQD');
+    const sqdAnalysisData = sqdQuestions.map(question => {
+      const ratingDistribution: Record<string, number> = { '1': 0, '2': 0, '3': 0, '4': 0, '5': 0, 'na': 0 };
+      let total = 0;
+      let count = 0;
+
+      responses.forEach(response => {
+        const value = response[question.id as keyof SurveyResponse];
+        if (value) {
+          if (String(value) === 'na' || value === 'na') {
+            (ratingDistribution as any)['na']++;
+          } else if (!isNaN(Number(value))) {
+            const numValue = Number(value);
+            (ratingDistribution as any)[String(numValue)]++;
+            total += numValue;
+            count++;
+          }
+        }
+      });
+
+      return {
+        questionId: question.id,
+        questionText: question.text,
+        averageRating: count > 0 ? total / count : 0,
+        responseCount: count,
+        ratingDistribution
+      };
+    });
+
+    const overallSQDAverage = sqdAnalysisData.length > 0
+      ? sqdAnalysisData.reduce((sum, q) => sum + q.averageRating, 0) / sqdAnalysisData.length
+      : 0;
+
+    // CC Analysis (Citizen's Charter)
+    const ccQuestions = questions.filter(q => q.category === 'CC');
+    const ccAnalysisData = ccQuestions.map(question => {
+      const responses_map: Record<string, number> = {};
+
+      responses.forEach(response => {
+        const value = String(response[question.id as keyof SurveyResponse] || '');
+        if (value) {
+          responses_map[value] = (responses_map[value] || 0) + 1;
+        }
+      });
+
+      return {
+        questionId: question.id,
+        questionText: question.text,
+        responses: responses_map
+      };
+    });
+
+    // Demographic Breakdown
+    const serviceStats: Record<string, { count: number; avgRating: number }> = {};
+    const clientTypeStats: Record<string, number> = {};
+    const regionStats: Record<string, number> = {};
+    const sexStats: Record<string, number> = {};
+    const ageStats: Record<string, number> = {};
+
+    responses.forEach(response => {
+      // Service stats
+      if (!serviceStats[response.service]) {
+        serviceStats[response.service] = { count: 0, avgRating: 0 };
+      }
+      serviceStats[response.service].count++;
+      serviceStats[response.service].avgRating += response.sqdAvg;
+
+      // Client type stats
+      clientTypeStats[response.clientType] = (clientTypeStats[response.clientType] || 0) + 1;
+
+      // Region stats
+      regionStats[response.region] = (regionStats[response.region] || 0) + 1;
+
+      // Sex stats
+      sexStats[response.sex] = (sexStats[response.sex] || 0) + 1;
+
+      // Age stats
+      ageStats[response.age] = (ageStats[response.age] || 0) + 1;
+    });
+
+    // Average the service ratings
+    Object.keys(serviceStats).forEach(service => {
+      if (serviceStats[service].count > 0) {
+        serviceStats[service].avgRating = serviceStats[service].avgRating / serviceStats[service].count;
+      }
+    });
+
+    // Convert counts to percentages for demographics
+    const clientTypePercentages: Record<string, { count: number; percentage: number }> = {};
+    Object.keys(clientTypeStats).forEach(type => {
+      clientTypePercentages[type] = {
+        count: clientTypeStats[type],
+        percentage: totalResponses > 0 ? (clientTypeStats[type] / totalResponses) * 100 : 0
+      };
+    });
+
+    const regionPercentages: Record<string, { count: number; percentage: number }> = {};
+    Object.keys(regionStats).forEach(region => {
+      regionPercentages[region] = {
+        count: regionStats[region],
+        percentage: totalResponses > 0 ? (regionStats[region] / totalResponses) * 100 : 0
+      };
+    });
+
+    const sexPercentages: Record<string, { count: number; percentage: number }> = {};
+    Object.keys(sexStats).forEach(sex => {
+      sexPercentages[sex] = {
+        count: sexStats[sex],
+        percentage: totalResponses > 0 ? (sexStats[sex] / totalResponses) * 100 : 0
+      };
+    });
+
+    const agePercentages: Record<string, { count: number; percentage: number }> = {};
+    Object.keys(ageStats).forEach(age => {
+      agePercentages[age] = {
+        count: ageStats[age],
+        percentage: totalResponses > 0 ? (ageStats[age] / totalResponses) * 100 : 0
+      };
+    });
+
+    // Quality Metrics
+    const complianceStatus = avgSatisfaction >= 4 ? 'COMPLIANT' : avgSatisfaction >= 3 ? 'PARTIALLY COMPLIANT' : 'NON-COMPLIANT';
+    const performanceRating = avgSatisfaction >= 4.5 ? 'EXCELLENT' : avgSatisfaction >= 4 ? 'GOOD' : avgSatisfaction >= 3 ? 'SATISFACTORY' : 'NEEDS IMPROVEMENT';
+
+    // Identify improvement areas (SQD dimensions with lowest ratings)
+    const improvementAreas = sqdAnalysisData
+      .sort((a, b) => a.averageRating - b.averageRating)
+      .slice(0, 3)
+      .map(q => `${q.questionId}: ${q.averageRating.toFixed(2)}/5.0`);
+
+    // Identify strengths (SQD dimensions with highest ratings)
+    const strengths = sqdAnalysisData
+      .sort((a, b) => b.averageRating - a.averageRating)
+      .slice(0, 3)
+      .map(q => `${q.questionId}: ${q.averageRating.toFixed(2)}/5.0`);
+
+    // Detailed responses for audit trail
+    const detailedResponsesData = responses.map(response => {
+      const ccResponses: Record<string, string> = {};
+      ccQuestions.forEach(q => {
+        ccResponses[q.id] = String(response[q.id as keyof SurveyResponse] || '');
+      });
+
+      return {
+        refId: response.refId,
+        date: response.date,
+        service: response.service,
+        clientType: response.clientType,
+        sqdAverage: response.sqdAvg,
+        ccResponses,
+        suggestions: response.suggestions
+      };
+    });
+
+    // Build final report
+    const report: ARTAComplianceReport = {
+      metadata: {
+        reportName: 'ARTA Compliance Report',
+        generatedDate: new Date().toISOString(),
+        organization: 'City Government of Valenzuela',
+        reportVersion: '1.0'
+      },
+      summary: {
+        totalResponses,
+        averageSatisfaction: Math.round(avgSatisfaction * 100) / 100,
+        reportingPeriod: `${new Date().getFullYear()}-Q${Math.ceil((new Date().getMonth() + 1) / 3)}`
+      },
+      sqdAnalysis: {
+        sqdQuestions: sqdAnalysisData,
+        overallSQDAverage: Math.round(overallSQDAverage * 100) / 100
+      },
+      ccAnalysis: {
+        ccQuestions: ccAnalysisData
+      },
+      demographicBreakdown: {
+        byService: serviceStats,
+        byClientType: clientTypePercentages,
+        byRegion: regionPercentages,
+        bySex: sexPercentages,
+        byAge: agePercentages
+      },
+      qualityMetrics: {
+        complianceStatus,
+        performanceRating,
+        improvementAreas,
+        strengths
+      },
+      detailedResponses: detailedResponsesData
+    };
+
+    // Convert to JSON and download
+    const jsonContent = JSON.stringify(report, null, 2);
+    downloadFile(jsonContent, filename, 'application/json');
+  } catch (error) {
+    console.error('Error generating ARTA compliance JSON:', error);
+    throw error;
+  }
+};
+
 /**
  * Export survey responses to CSV format
  */

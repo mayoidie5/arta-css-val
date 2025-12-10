@@ -1,0 +1,318 @@
+{
+  "metadata": {
+    "reportName": "ARTA Compliance Report",
+    "generatedDate": "2025-12-10T10:30:00.000Z",
+    "organization": "City Government of Valenzuela",
+    "reportVersion": "1.0"
+  },
+  "summary": {
+    "totalResponses": 150,
+    "averageSatisfaction": 4.25,
+    "reportingPeriod": "2025-Q4"
+  },
+  "sqdAnalysis": {
+    "sqdQuestions": [
+      {
+        "questionId": "sqd0",
+        "questionText": "I am satisfied with the service that I availed.",
+        "averageRating": 4.3,
+        "responseCount": 145,
+        "ratingDistribution": {
+          "1": 5,
+          "2": 8,
+          "3": 12,
+          "4": 60,
+          "5": 60,
+          "na": 5
+        }
+      },
+      {
+        "questionId": "sqd1",
+        "questionText": "I spent a reasonable amount of time for my transaction.",
+        "averageRating": 4.15,
+        "responseCount": 148,
+        "ratingDistribution": {
+          "1": 3,
+          "2": 10,
+          "3": 20,
+          "4": 70,
+          "5": 45,
+          "na": 2
+        }
+      },
+      {
+        "questionId": "sqd2",
+        "questionText": "The office followed the transaction's requirements and steps based on the information provided.",
+        "averageRating": 4.4,
+        "responseCount": 146,
+        "ratingDistribution": {
+          "1": 2,
+          "2": 5,
+          "3": 12,
+          "4": 65,
+          "5": 62,
+          "na": 4
+        }
+      },
+      {
+        "questionId": "sqd3",
+        "questionText": "The steps (including payment) I needed to do for my transaction were easy and simple.",
+        "averageRating": 4.2,
+        "responseCount": 147,
+        "ratingDistribution": {
+          "1": 4,
+          "2": 7,
+          "3": 15,
+          "4": 70,
+          "5": 51,
+          "na": 3
+        }
+      },
+      {
+        "questionId": "sqd4",
+        "questionText": "I easily found information about my transaction from the office or its website.",
+        "averageRating": 3.85,
+        "responseCount": 140,
+        "ratingDistribution": {
+          "1": 8,
+          "2": 15,
+          "3": 25,
+          "4": 60,
+          "5": 32,
+          "na": 10
+        }
+      },
+      {
+        "questionId": "sqd5",
+        "questionText": "I paid a reasonable amount of fees for my transaction. (If service was free, mark the 'N/A' column.)",
+        "averageRating": 4.0,
+        "responseCount": 135,
+        "ratingDistribution": {
+          "1": 5,
+          "2": 10,
+          "3": 20,
+          "4": 55,
+          "5": 45,
+          "na": 15
+        }
+      },
+      {
+        "questionId": "sqd6",
+        "questionText": "I feel the office was fair to everyone, or \"walang palakasan\", during my transaction.",
+        "averageRating": 4.35,
+        "responseCount": 148,
+        "ratingDistribution": {
+          "1": 3,
+          "2": 6,
+          "3": 11,
+          "4": 68,
+          "5": 60,
+          "na": 2
+        }
+      },
+      {
+        "questionId": "sqd7",
+        "questionText": "I was treated courteously by the staff, and (if asked for help) the staff was helpful.",
+        "averageRating": 4.45,
+        "responseCount": 149,
+        "ratingDistribution": {
+          "1": 2,
+          "2": 4,
+          "3": 8,
+          "4": 65,
+          "5": 70,
+          "na": 1
+        }
+      },
+      {
+        "questionId": "sqd8",
+        "questionText": "I got what I needed from the government office, or (if denied) denial of request was sufficiently explained to me.",
+        "averageRating": 4.28,
+        "responseCount": 147,
+        "ratingDistribution": {
+          "1": 3,
+          "2": 6,
+          "3": 14,
+          "4": 68,
+          "5": 56,
+          "na": 3
+        }
+      }
+    ],
+    "overallSQDAverage": 4.25
+  },
+  "ccAnalysis": {
+    "ccQuestions": [
+      {
+        "questionId": "cc1",
+        "questionText": "Which of the following best describes your awareness of a Citizen's Charter?",
+        "responses": {
+          "1. I know what a CC is and I saw this office's CC.": 55,
+          "2. I know what a CC is but I did NOT see this office's CC.": 32,
+          "3. I learned of the CC only when I saw this office's CC.": 45,
+          "4. I do not know what a CC is and I did not see one in this office.": 18
+        }
+      },
+      {
+        "questionId": "cc2",
+        "questionText": "If aware of CC, would you say that the CC of this office was...?",
+        "responses": {
+          "1. Easy to see": 68,
+          "2. Somewhat easy to see": 42,
+          "3. Difficult to see": 28,
+          "Not applicable": 12
+        }
+      },
+      {
+        "questionId": "cc3",
+        "questionText": "If aware of the CC, did the CC of this office help you in your transaction?",
+        "responses": {
+          "1. Yes, it helped very much": 62,
+          "2. Yes, it helped somewhat": 38,
+          "3. No, it did not help": 15,
+          "Not applicable": 35
+        }
+      }
+    ]
+  },
+  "demographicBreakdown": {
+    "byService": {
+      "License and Permits": {
+        "count": 50,
+        "avgRating": 4.3
+      },
+      "Business Registration": {
+        "count": 45,
+        "avgRating": 4.2
+      },
+      "Certificate of Residency": {
+        "count": 35,
+        "avgRating": 4.15
+      },
+      "Clearance": {
+        "count": 20,
+        "avgRating": 4.4
+      }
+    },
+    "byClientType": {
+      "Individual": {
+        "count": 110,
+        "percentage": 73.33
+      },
+      "Business": {
+        "count": 40,
+        "percentage": 26.67
+      }
+    },
+    "byRegion": {
+      "Urban": {
+        "count": 120,
+        "percentage": 80.0
+      },
+      "Rural": {
+        "count": 30,
+        "percentage": 20.0
+      }
+    },
+    "bySex": {
+      "Male": {
+        "count": 75,
+        "percentage": 50.0
+      },
+      "Female": {
+        "count": 75,
+        "percentage": 50.0
+      }
+    },
+    "byAge": {
+      "18-25": {
+        "count": 25,
+        "percentage": 16.67
+      },
+      "26-35": {
+        "count": 45,
+        "percentage": 30.0
+      },
+      "36-45": {
+        "count": 40,
+        "percentage": 26.67
+      },
+      "46-55": {
+        "count": 25,
+        "percentage": 16.67
+      },
+      "56+": {
+        "count": 15,
+        "percentage": 10.0
+      }
+    }
+  },
+  "qualityMetrics": {
+    "complianceStatus": "COMPLIANT",
+    "performanceRating": "GOOD",
+    "improvementAreas": [
+      "sqd4: 3.85/5.0",
+      "sqd5: 4.0/5.0",
+      "sqd1: 4.15/5.0"
+    ],
+    "strengths": [
+      "sqd7: 4.45/5.0",
+      "sqd2: 4.4/5.0",
+      "sqd6: 4.35/5.0"
+    ]
+  },
+  "detailedResponses": [
+    {
+      "refId": "ARTA-2025-001",
+      "date": "2025-12-01",
+      "service": "License and Permits",
+      "clientType": "Individual",
+      "sqdAverage": 4.5,
+      "ccResponses": {
+        "cc1": "1. I know what a CC is and I saw this office's CC.",
+        "cc2": "1. Easy to see",
+        "cc3": "1. Yes, it helped very much"
+      },
+      "suggestions": "Service was excellent and staff was very helpful."
+    },
+    {
+      "refId": "ARTA-2025-002",
+      "date": "2025-12-02",
+      "service": "Business Registration",
+      "clientType": "Business",
+      "sqdAverage": 4.2,
+      "ccResponses": {
+        "cc1": "2. I know what a CC is but I did NOT see this office's CC.",
+        "cc2": "2. Somewhat easy to see",
+        "cc3": "2. Yes, it helped somewhat"
+      },
+      "suggestions": "Process was smooth but could improve online documentation."
+    },
+    {
+      "refId": "ARTA-2025-003",
+      "date": "2025-12-03",
+      "service": "Certificate of Residency",
+      "clientType": "Individual",
+      "sqdAverage": 3.8,
+      "ccResponses": {
+        "cc1": "3. I learned of the CC only when I saw this office's CC.",
+        "cc2": "2. Somewhat easy to see",
+        "cc3": "2. Yes, it helped somewhat"
+      },
+      "suggestions": "Could provide more information about requirements upfront."
+    },
+    {
+      "refId": "ARTA-2025-004",
+      "date": "2025-12-04",
+      "service": "Clearance",
+      "clientType": "Individual",
+      "sqdAverage": 4.6,
+      "ccResponses": {
+        "cc1": "1. I know what a CC is and I saw this office's CC.",
+        "cc2": "1. Easy to see",
+        "cc3": "1. Yes, it helped very much"
+      },
+      "suggestions": "Everything was perfect, staff was very professional."
+    }
+  ]
+}
