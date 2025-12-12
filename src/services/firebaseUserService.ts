@@ -27,6 +27,7 @@ export interface AdminUser {
   status: 'Active' | 'Inactive';
   createdAt: string;
   lastLogin?: string;
+  deleted?: boolean;
 }
 
 /**
@@ -142,18 +143,19 @@ export const updateUserProfile = async (
 /**
  * Delete user from Firebase Auth and Firestore
  * Note: This requires the user to be signed in or you need Admin SDK
- * For now, we'll just delete from Firestore
+ * For now, we'll just mark the user as deleted in Firestore
  */
 export const deleteUserProfile = async (uid: string): Promise<void> => {
   try {
-    // Delete from Firestore
+    // Mark user as deleted instead of removing the document
+    // This prevents the user from being re-created when they try to log in
     const userRef = doc(db, 'users', uid);
-    await deleteDoc(userRef);
+    await updateDoc(userRef, { deleted: true });
 
     // Note: To delete from Firebase Auth, you would need:
     // 1. Admin SDK on backend
     // 2. Or the user to be currently signed in (but then they can't delete themselves)
-    // So we're only deleting from Firestore for now
+    // So we're only marking as deleted in Firestore for now
   } catch (error: any) {
     throw new Error(error.message || 'Failed to delete user');
   }

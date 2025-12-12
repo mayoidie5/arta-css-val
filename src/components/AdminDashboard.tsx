@@ -1837,7 +1837,7 @@ export function AdminDashboard({
                           </TableCell>
                         </TableRow>
                       ) : (
-                        firebaseUsers.map((user) => (
+                        firebaseUsers.filter((user) => !user.deleted).map((user) => (
                           <TableRow key={user.id}>
                             <TableCell className="px-6 py-4">{user.name}</TableCell>
                             <TableCell className="px-6 py-4">{user.email}</TableCell>
