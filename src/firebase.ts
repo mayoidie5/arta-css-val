@@ -1,5 +1,5 @@
 // Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
+import { initializeApp, getApps } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
@@ -25,5 +25,17 @@ export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const storage = getStorage(app);
 export const functions = getFunctions(app);
+
+// Create a separate Firebase app instance for user creation
+// This ensures the admin's session is never affected
+const createUserAppConfig = {
+  ...firebaseConfig,
+  appName: "createUserApp"
+};
+
+const existingApps = getApps();
+const createUserAppExists = existingApps.some(a => a.name === "createUserApp");
+export const createUserApp = createUserAppExists ? existingApps.find(a => a.name === "createUserApp")! : initializeApp(createUserAppConfig, "createUserApp");
+export const createUserAuth = getAuth(createUserApp);
 
 export default app;

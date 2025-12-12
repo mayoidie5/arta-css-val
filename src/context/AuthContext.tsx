@@ -30,6 +30,8 @@ interface AuthContextType {
   resetPassword: (email: string) => Promise<void>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
   clearError: () => void;
+  restoreAdminSession: (email: string, password: string) => Promise<void>;
+  setAddingUserFlag: (isAdding: boolean) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -39,12 +41,26 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const adminEmailRef = React.useRef<string | null>(null);
+  const isAddingUserRef = React.useRef<boolean>(false);
 
   // Listen for auth state changes and restore session on page refresh
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUserData) => {
       try {
         if (firebaseUserData) {
+          // CRITICAL: Check if this is the expected admin user
+          // If we're in the middle of adding a user and the current user doesn't match the admin,
+          // it means the new user got logged in - immediately sign them out
+          if (isAddingUserRef.current && adminEmailRef.current && firebaseUserData.email !== adminEmailRef.current) {
+            console.log('Blocking unauthorized login during user creation');
+            await signOut(auth);
+            setFirebaseUser(null);
+            setUser(null);
+            setLoading(false);
+            return;
+          }
+
           setFirebaseUser(firebaseUserData);
           
           // Get user data from Firestore
@@ -72,6 +88,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               role: userData.role || 'Staff',
               status: userData.status || 'Active'
             });
+            
+            // Store admin email for verification
+            adminEmailRef.current = firebaseUserData.email;
           } else {
             // If user doc doesn't exist, don't create it
             // Just sign them out as they're not a valid user
@@ -228,6 +247,29 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const clearError = () => setError(null);
 
+  const setAddingUserFlag = (isAdding: boolean) => {
+    isAddingUserRef.current = isAdding;
+  };
+
+  const restoreAdminSession = async (email: string, password: string) => {
+    try {
+      setError(null);
+      setLoading(true);
+      // Re-authenticate the admin with their saved credentials
+      await signInWithEmailAndPassword(auth, email, password);
+    } catch (err: any) {
+      const errorMessage = err.code === 'auth/user-not-found'
+        ? 'Admin account not found'
+        : err.code === 'auth/wrong-password'
+        ? 'Invalid admin credentials'
+        : err.message || 'Failed to restore admin session';
+      setError(errorMessage);
+      throw new Error(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const value: AuthContextType = {
     user,
     firebaseUser,
@@ -238,7 +280,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     signup,
     resetPassword,
     changePassword,
-    clearError
+    clearError,
+    restoreAdminSession,
+    setAddingUserFlag
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
