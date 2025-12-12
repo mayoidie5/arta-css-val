@@ -1,7 +1,10 @@
 import {
   createUserWithEmailAndPassword,
   deleteUser,
-  User as FirebaseUser
+  User as FirebaseUser,
+  signInWithEmailAndPassword,
+  signOut,
+  getAuth
 } from 'firebase/auth';
 import {
   collection,
@@ -16,7 +19,7 @@ import {
   Unsubscribe,
   writeBatch
 } from 'firebase/firestore';
-import { auth, db } from '../firebase';
+import { auth, db, createUserAuth } from '../firebase';
 
 export interface AdminUser {
   id: string; // Firebase UID
@@ -32,16 +35,19 @@ export interface AdminUser {
 
 /**
  * Add a new user to Firebase Auth and create user profile in Firestore
+ * Uses a separate auth instance to avoid affecting the admin's logged-in session
+ * The new user is NOT left logged in - they are signed out immediately after creation
  */
 export const addUserToFirebase = async (
   email: string,
   password: string,
   name: string,
   role: 'Admin' | 'Staff' | 'Enumerator'
-): Promise<AdminUser> => {
+): Promise<{ user: AdminUser; previousAuthEmail?: string }> => {
   try {
-    // Create user in Firebase Auth
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    // Create user using the separate auth instance
+    // This will NOT affect the main auth instance (where admin is logged in)
+    const userCredential = await createUserWithEmailAndPassword(createUserAuth, email, password);
     const uid = userCredential.user.uid;
 
     // Create user profile in Firestore
@@ -56,7 +62,14 @@ export const addUserToFirebase = async (
 
     await setDoc(doc(db, 'users', uid), userData);
 
-    return { id: uid, ...userData };
+    // Sign out the newly created user immediately
+    // The new user should NOT be logged in after creation
+    await signOut(createUserAuth);
+
+    return { 
+      user: { id: uid, ...userData },
+      previousAuthEmail: undefined
+    };
   } catch (error: any) {
     const errorMessage = error.code === 'auth/email-already-in-use'
       ? 'Email already in use'

@@ -76,7 +76,7 @@ export function AdminDashboard({
   onReorderQuestions,
   onLogout
 }: AdminDashboardProps) {
-  const { user, firebaseUser, loading: authLoading, error: authError, login, logout, resetPassword, clearError } = useAuth();
+  const { user, firebaseUser, loading: authLoading, error: authError, login, logout, resetPassword, clearError, setAddingUserFlag } = useAuth();
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [loginError, setLoginError] = useState('');
@@ -113,6 +113,8 @@ export function AdminDashboard({
   const [firebaseUsers, setFirebaseUsers] = useState<AdminUser[]>([]);
   const [firebaseUsersLoading, setFirebaseUsersLoading] = useState(true);
   const [firebaseUsersError, setFirebaseUsersError] = useState<string | null>(null);
+  const [adminCredentials, setAdminCredentials] = useState<{ email: string; password: string } | null>(null);
+  const [addUserAdminPassword, setAddUserAdminPassword] = useState('');
 
   // Form states
   const [newUserForm, setNewUserForm] = useState({ name: '', email: '', role: 'Staff', password: '' });
@@ -519,6 +521,16 @@ export function AdminDashboard({
       setActionErrorOpen(true);
       return;
     }
+    if (!addUserAdminPassword) {
+      setActionErrorMessage('Please enter your admin password to confirm adding a new user');
+      setActionErrorOpen(true);
+      return;
+    }
+    if (!firebaseUser?.email) {
+      setActionErrorMessage('Admin email not found');
+      setActionErrorOpen(true);
+      return;
+    }
     setPendingUserData({
       name: newUserForm.name,
       email: newUserForm.email,
@@ -526,26 +538,55 @@ export function AdminDashboard({
       password: newUserForm.password,
       status: 'Active'
     });
+    // Store admin credentials temporarily for session restoration
+    setAdminCredentials({
+      email: firebaseUser.email,
+      password: addUserAdminPassword
+    });
     setAddUserOpen(false);
     setAddUserConfirmOpen(true);
   };
 
   const confirmAddUser = async () => {
-    if (pendingUserData) {
+    if (pendingUserData && adminCredentials) {
       try {
+        // Set flag to prevent new user from being logged in
+        setAddingUserFlag(true);
+        
+        // Create the new user using a separate auth instance
+        // The admin's session is NOT affected
         await addUserToFirebase(
           pendingUserData.email,
           pendingUserData.password,
           pendingUserData.name,
           pendingUserData.role
         );
+        
+        // Admin remains logged in automatically - no sign out/sign in needed
+        
+        // Clear all temporary data
         setNewUserForm({ name: '', email: '', role: 'Staff', password: '' });
+        setAddUserAdminPassword('');
         setPendingUserData(null);
+        setAdminCredentials(null);
         setAddUserConfirmOpen(false);
+        
+        // Clear the flag
+        setAddingUserFlag(false);
+        
         setActionSuccessMessage('User added successfully!');
         setActionSuccessOpen(true);
       } catch (err: any) {
-        setActionErrorMessage(err.message || 'Failed to add user');
+        // Clear sensitive data even on error
+        setAddUserAdminPassword('');
+        setPendingUserData(null);
+        setAdminCredentials(null);
+        
+        // Clear the flag
+        setAddingUserFlag(false);
+        
+        const errorMsg = err.message || 'Failed to add user';
+        setActionErrorMessage(errorMsg);
         setActionErrorOpen(true);
       }
     }
@@ -2106,7 +2147,13 @@ export function AdminDashboard({
       </Dialog>
 
       {/* Add User Dialog */}
-      <Dialog open={addUserOpen} onOpenChange={setAddUserOpen}>
+      <Dialog open={addUserOpen} onOpenChange={(open) => {
+        setAddUserOpen(open);
+        // Clear password field when closing
+        if (!open) {
+          setAddUserAdminPassword('');
+        }
+      }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -2155,6 +2202,17 @@ export function AdminDashboard({
                 type="password"
                 value={newUserForm.password}
                 onChange={(e) => setNewUserForm({ ...newUserForm, password: e.target.value })}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="admin-password">Your Admin Password (to confirm)</Label>
+              <Input
+                id="admin-password"
+                type="password"
+                placeholder="Enter your password to confirm"
+                value={addUserAdminPassword}
+                onChange={(e) => setAddUserAdminPassword(e.target.value)}
                 required
               />
             </div>
