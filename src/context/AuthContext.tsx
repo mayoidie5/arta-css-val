@@ -53,6 +53,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           
           if (userDoc.exists()) {
             const userData = userDoc.data();
+            
+            // Check if user is deleted
+            if (userData.deleted) {
+              // Sign out deleted user immediately
+              await signOut(auth);
+              setFirebaseUser(null);
+              setUser(null);
+              setError('This user account has been deleted and cannot be used');
+              setLoading(false);
+              return;
+            }
+            
             setUser({
               uid: firebaseUserData.uid,
               email: firebaseUserData.email,
@@ -61,19 +73,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               status: userData.status || 'Active'
             });
           } else {
-            // If user doc doesn't exist, create one with default values
-            const defaultUserData = {
-              name: firebaseUserData.email?.split('@')[0] || 'User',
-              role: 'Staff',
-              status: 'Active',
-              createdAt: new Date().toISOString()
-            };
-            await setDoc(userDocRef, defaultUserData);
-            setUser({
-              uid: firebaseUserData.uid,
-              email: firebaseUserData.email,
-              ...defaultUserData
-            });
+            // If user doc doesn't exist, don't create it
+            // Just sign them out as they're not a valid user
+            await signOut(auth);
+            setFirebaseUser(null);
+            setUser(null);
           }
         } else {
           setFirebaseUser(null);
@@ -94,7 +98,21 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       setError(null);
       setLoading(true);
-      await signInWithEmailAndPassword(auth, email, password);
+      const result = await signInWithEmailAndPassword(auth, email, password);
+      
+      // Check if the user is deleted
+      const userDocRef = doc(db, 'users', result.user.uid);
+      const userDoc = await getDoc(userDocRef);
+      
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        if (userData.deleted) {
+          // Sign out the user immediately
+          await signOut(auth);
+          setError('This user account has been deleted and cannot be used');
+          throw new Error('This user account has been deleted and cannot be used');
+        }
+      }
     } catch (err: any) {
       const errorMessage = err.code === 'auth/user-not-found' 
         ? 'Email not found' 
