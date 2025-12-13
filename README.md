@@ -1,7 +1,5 @@
 
-  # ARTA-Compliant CSS PWA Design (Copy)
-
-  This is a code bundle for ARTA-Compliant CSS PWA Design (Copy). The original project is available at https://www.figma.com/design/nAZyghXwdWTF9psbQtgDA0/ARTA-Compliant-CSS-PWA-Design--Copy-.
+  # ARTA-Compliant CSS PWA Design
 
   ## Running the code
 
